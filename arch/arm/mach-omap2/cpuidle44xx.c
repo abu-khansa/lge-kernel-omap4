@@ -42,7 +42,7 @@
 /* C2 through C4 are shared C-states, both CPUs must agree to enter */
 /* C2 - CPU0 INA + CPU1 INA + MPU INA + CORE INA */
 #define OMAP4_STATE_C2		1
-/* C3 - CPU0 OFF + CPU1 OFF + MPU CSWR + CORE CSWR */
+/* C3 - CPU0 OFF + CPU1 OFF + MPU CSWR/OSWR + CORE CSWR */
 #define OMAP4_STATE_C3		2
 /* C4 - CPU0 OFF + CPU1 OFF + MPU OSWR + CORE OSWR */
 #define OMAP4_STATE_C4		3
@@ -119,7 +119,7 @@ static struct cpuidle_params cpuidle_params_table[] = {
 	/* C3 - CPU0 OFF + CPU1 OFF + MPU CSWR + CORE CSWR */
 	{.exit_latency = 1200, .target_residency = 7000, .valid = 1},
 #ifdef CONFIG_OMAP_ALLOW_OSWR
-	/* C4 - CPU0 OFF + CPU1 OFF + MPU CSWR + CORE OSWR */
+	/* C4 - CPU0 OFF + CPU1 OFF + MPU CSWR/OSWR + CORE OSWR */
 	{.exit_latency = 1500, .target_residency = 15000, .valid = 1},
 #else
 	{.exit_latency = 1500, .target_residency = 15000, .valid = 0},
@@ -670,10 +670,18 @@ void omap4_init_power_states(void)
 	omap4_power_states[OMAP4_STATE_C4].target_residency =
 			cpuidle_params_table[OMAP4_STATE_C4].target_residency;
 	omap4_power_states[OMAP4_STATE_C4].mpu_state = PWRDM_POWER_RET;
+#ifdef CONFIG_OMAP_C4_MPUOSWR
 	omap4_power_states[OMAP4_STATE_C4].mpu_logic_state = PWRDM_POWER_OFF;
+#else
+	omap4_power_states[OMAP4_STATE_C4].mpu_logic_state = PWRDM_POWER_OFF;
+#endif
 	omap4_power_states[OMAP4_STATE_C4].core_state = PWRDM_POWER_RET;
 	omap4_power_states[OMAP4_STATE_C4].core_logic_state = PWRDM_POWER_OFF;
+#ifdef CONFIG_OMAP_C4_MPUOSWR
 	omap4_power_states[OMAP4_STATE_C4].desc = "CPUs OFF, MPU OSWR + CORE OSWR";
+#else
+	omap4_power_states[OMAP4_STATE_C4].desc = "CPUs OFF, MPU OSWR + CORE OSWR";
+#endif
 
 }
 

@@ -437,6 +437,14 @@ config OMAP_ALLOW_OSWR
 source "arch/arm/mach-omap2/lge/Kconfig"
 ## LGE_SJIT_E 2011-08-25 [choongryeol.lee@lge.com] Port lghdk on K3.0
 
+config OMAP_C4_MPUOSWR
+	bool  "Enable Open Switch Retention in the C4 state for the MPU"
+	depends on OMAP_ALLOW_OSWR
+	default n
+	help
+	  Select this option to enable powering down the MPU logic
+	  in the C4 state reducing the power consumption.
+
 config OMAP_FIQ_DEBUGGER
 	bool "Enable the serial FIQ debugger on OMAP"
 	default y
