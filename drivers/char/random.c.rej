@@ -1,0 +1,14 @@
+diff a/drivers/char/random.c b/drivers/char/random.c	(rejected hunks)
+@@ -256,8 +263,12 @@
+ #include <asm/processor.h>
+ #include <asm/uaccess.h>
+ #include <asm/irq.h>
++#include <asm/irq_regs.h>
+ #include <asm/io.h>
+ 
++#define CREATE_TRACE_POINTS
++#include <trace/events/random.h>
++
+ /*
+  * Configuration information
+  */
