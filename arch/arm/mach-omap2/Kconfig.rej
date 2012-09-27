@@ -1,12 +1,13 @@
 diff a/arch/arm/mach-omap2/Kconfig b/arch/arm/mach-omap2/Kconfig	(rejected hunks)
-@@ -471,4 +471,10 @@ config RQ_STATS
- 	  Select this to enable scheduler rune queue statistic
- 	  collections
+@@ -464,4 +464,11 @@ config FORCE_FAST_CHARGE
+ 	  A simple sysfs interface to force adapters that
+ 	  are detected as USB to charge as AC.
  
-+config INTELLI_PLUG
-+	bool "Enable intelli-plug cpu hotplug driver"
++config RQ_STATS
++	bool "Enable Run queue statistics"
 +	default n
 +	help
-+	  Generic Intelli-plug cpu hotplug driver for ARM SOCs
++	  Select this to enable scheduler rune queue statistic
++	  collections
 +
  endif
