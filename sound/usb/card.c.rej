@@ -1,0 +1,15 @@
+diff a/sound/usb/card.c b/sound/usb/card.c	(rejected hunks)
+@@ -554,9 +554,11 @@ static void snd_usb_audio_disconnect(struct usb_device *dev, void *ptr)
+ 
+ 	chip = ptr;
+ 	card = chip->card;
+-	mutex_lock(&register_mutex);
+-	mutex_lock(&chip->shutdown_mutex);
++	down_write(&chip->shutdown_rwsem);
+ 	chip->shutdown = 1;
++	up_write(&chip->shutdown_rwsem);
++
++	mutex_lock(&register_mutex);
+ 	chip->num_interfaces--;
+ 	if (chip->num_interfaces <= 0) {
+ 		snd_card_disconnect(card);
