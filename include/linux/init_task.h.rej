@@ -1,0 +1,9 @@
+diff a/include/linux/init_task.h b/include/linux/init_task.h	(rejected hunks)
+@@ -193,6 +200,7 @@
+ 	INIT_FTRACE_GRAPH						\
+ 	INIT_TRACE_RECURSION						\
+ 	INIT_TASK_RCU_PREEMPT(tsk)					\
++	INIT_CPUSET_SEQ							\
+ }
+ 
+ 
