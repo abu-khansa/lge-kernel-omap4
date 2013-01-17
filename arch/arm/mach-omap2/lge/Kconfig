@@ -85,6 +85,10 @@ config OMAP_UART4_EARLY_PRINTK
        bool "OMAP UART4 EARLY PRINTK for INIT DEBUG"
        default n
 
+config DEVKERNEL
+       bool "Fix for kernels builded without rom-base"
+       default n
+
 config LGE_HANDLE_PANIC
 	tristate "Support LGE Kernel Panic Handler"
 	default n

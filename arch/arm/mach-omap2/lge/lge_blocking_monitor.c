@@ -18,7 +18,12 @@
 
 #include <asm/current.h>
 
+#ifdef CONFIG_DEVKERNEL
+#include <lge/lge_blocking_monitor.h>
+#endif
+#ifndef CONFIG_DEVKERNEL
 #include <include/lge/lge_blocking_monitor.h>
+#endif
 
 #define MAX_BLOCKING_MONITOR_NUMBER	10
 

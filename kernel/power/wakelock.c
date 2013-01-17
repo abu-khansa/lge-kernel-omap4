@@ -29,7 +29,12 @@
 #include "power.h"
 
 #ifdef CONFIG_MACH_LGE
+#ifdef CONFIG_DEVKERNEL
+#include <../arch/arm/mach-omap2/lge/include/lge/lge_blocking_monitor.h>
+#endif
+#ifndef CONFIG_DEVKERNEL
 #include <../../arch/arm/mach-omap2/lge/include/lge/lge_blocking_monitor.h>
+#endif
 #endif
 
 enum {
