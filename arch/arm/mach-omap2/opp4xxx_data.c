@@ -220,10 +220,12 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	OPP_INITIALIZER("iva", "virt_iva_ck", "iva", false, 430000000, OMAP4430_VDD_IVA_OPPNITRO_UV),
 	/* SGX OPP1 - OPP50 */
 	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 153600000, OMAP4430_VDD_CORE_OPP50_UV),
+	/* SGX OPP3 - OPP100 */
+    OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 307200000, OMAP4430_VDD_CORE_OPP100_UV),
 	/* SGX OPP3 - OPPOV */
     OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 384000000, OMAP4430_VDD_CORE_OPP100_UV),
    /* Added fourth step - artas182x */
-   OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", false, 420000000, OMAP4430_VDD_CORE_OPP100B_UV),
+   OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", false, 416000000, OMAP4430_VDD_CORE_OPP100B_UV),
 /* FDIF OPP1 - OPP25 */
 	OPP_INITIALIZER("fdif", "fdif_fck", "core", true, 32000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* FDIF OPP2 - OPP50 */
