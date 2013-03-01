@@ -1,0 +1,11 @@
+diff a/fs/fat/namei_vfat.c b/fs/fat/namei_vfat.c	(rejected hunks)
+@@ -514,7 +514,8 @@ static int vfat_create_shortname(struct inode *dir, struct nls_table *nls,
+ 	int charlen;
+ 
+ 	if (utf8) {
+-		*outlen = utf8s_to_utf16s(name, len, (wchar_t *)outname);
++		*outlen = utf8s_to_utf16s(name, len, UTF16_HOST_ENDIAN,
++				(wchar_t *) outname, FAT_LFN_LEN + 2);
+ 		if (*outlen < 0)
+ 			return *outlen;
+ 		else if (*outlen > FAT_LFN_LEN)
