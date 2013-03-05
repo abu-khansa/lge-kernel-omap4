@@ -578,7 +578,7 @@ static struct regulator_init_data sdp4430_vmmc5 = {
 };
 static struct fixed_voltage_config sdp4430_vwlan = {
 	.supply_name = "vwl1271",
-	.microvolts = 1800000, /* 1.8V */
+	.microvolts = 1750000, /* 1.7V */
 	.gpio = GPIO_WIFI_PMENA,
 	.startup_delay = 70000, /* 70msec */
 	.enable_high = 1,
