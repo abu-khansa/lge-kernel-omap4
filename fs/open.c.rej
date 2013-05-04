@@ -1,0 +1,19 @@
+diff a/fs/open.c b/fs/open.c	(rejected hunks)
+@@ -854,7 +854,7 @@ struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags,
+ static void __put_unused_fd(struct files_struct *files, unsigned int fd)
+ {
+ 	struct fdtable *fdt = files_fdtable(files);
+-	__FD_CLR(fd, fdt->open_fds);
++	__clear_open_fd(fd, fdt);
+ 	if (fd < files->next_fd)
+ 		files->next_fd = fd;
+ }
+@@ -1099,7 +1099,7 @@ int filp_close(struct file *filp, fl_owner_t id)
+ 	if (!filp)
+ 		goto out_unlock;
+ 	rcu_assign_pointer(fdt->fd[fd], NULL);
+-	FD_CLR(fd, fdt->close_on_exec);
++	__clear_close_on_exec(fd, fdt);
+ 	__put_unused_fd(files, fd);
+ 	spin_unlock(&files->file_lock);
+ 	retval = filp_close(filp, files);
