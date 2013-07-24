@@ -1,0 +1,62 @@
+diff a/mm/slub.c b/mm/slub.c	(rejected hunks)
+@@ -1437,26 +1542,43 @@ static struct page *get_partial_node(struct kmem_cache_node *n)
+ 		return NULL;
+ 
+ 	spin_lock(&n->list_lock);
+-	list_for_each_entry(page, &n->partial, lru)
+-		if (lock_and_freeze_slab(n, page))
+-			goto out;
+-	page = NULL;
+-out:
++	list_for_each_entry_safe(page, page2, &n->partial, lru) {
++		void *t = acquire_slab(s, n, page, object == NULL);
++		int available;
++
++		if (!t)
++			break;
++
++		if (!object) {
++			c->page = page;
++			c->node = page_to_nid(page);
++			stat(s, ALLOC_FROM_PARTIAL);
++			object = t;
++			available =  page->objects - page->inuse;
++		} else {
++			page->freelist = t;
++			available = put_cpu_partial(s, page, 0);
++		}
++		if (kmem_cache_debug(s) || available > s->cpu_partial / 2)
++			break;
++
++	}
+ 	spin_unlock(&n->list_lock);
+-	return page;
++	return object;
+ }
+ 
+ /*
+- * Get a page from somewhere. Search in increasing NUMA distances.
++ * Get a partial slab from somewhere. Search in increasing NUMA distances.
+  */
+-static struct page *get_any_partial(struct kmem_cache *s, gfp_t flags)
++static void *get_any_partial(struct kmem_cache *s, gfp_t flags,
++		struct kmem_cache_cpu *c)
+ {
+ #ifdef CONFIG_NUMA
+ 	struct zonelist *zonelist;
+ 	struct zoneref *z;
+ 	struct zone *zone;
+ 	enum zone_type high_zoneidx = gfp_zone(flags);
+-	struct page *page;
++	void *object;
+ 	unsigned int cpuset_mems_cookie;
+ 
+ 	/*
+@@ -1481,6 +1603,7 @@ static struct page *get_any_partial(struct kmem_cache *s, gfp_t flags)
+ 			get_cycles() % 1024 > s->remote_node_defrag_ratio)
+ 		return NULL;
+ 
++
+ 	do {
+ 		cpuset_mems_cookie = get_mems_allowed();
+ 		zonelist = node_zonelist(slab_node(current->mempolicy), flags);
