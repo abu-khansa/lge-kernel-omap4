@@ -369,8 +369,8 @@ module_param(dhd_console_ms, uint, 0644);
 uint dhd_slpauto = TRUE;
 module_param(dhd_slpauto, uint, 0);
 
-/* ARP offload agent mode : Enable ARP Host Auto-Reply and ARP Peer Auto-Reply */
-uint dhd_arp_mode = 0xb;
+/* ARP offload agent mode : enable ARP Peer Auto-Reply */
+uint dhd_arp_mode = ARP_OL_AGENT | ARP_OL_PEER_AUTO_REPLY;
 module_param(dhd_arp_mode, uint, 0);
 
 /* ARP offload enable */
@@ -643,13 +643,7 @@ static void dhd_set_packet_filter(int value, dhd_pub_t *dhd)
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-
-//bill.jung@lge.com - Don't set up filter and Power save mode
-#if 0
 	int power_mode = PM_MAX;
-#endif
-//bill.jung@lge.com - Don't set up filter and Power save mode
-
 	/* wl_pkt_filter_enable_t	enable_parm; */
 	char iovbuf[32];
 	int bcn_li_dtim = 3;
@@ -663,16 +657,10 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 
 				/* Kernel suspended */
 				DHD_ERROR(("%s: force extra Suspend setting \n", __FUNCTION__));
-				
-//bill.jung@lge.com - Don't set up filter and Power save mode
-#if 0
+
 				dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode,
 				                 sizeof(power_mode), TRUE, 0);
 
-				/* Enable packet filter, only allow unicast packet to send up */
-				dhd_set_packet_filter(1, dhd);
-#endif
-//bill.jung@lge.com - Don't set up filter and Power save mode
 				/* Enable packet filter, only allow unicast packet to send up */
 				dhd_set_packet_filter(1, dhd);
 
@@ -693,17 +681,11 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 
 				/* Kernel resumed  */
 				DHD_TRACE(("%s: Remove extra suspend setting \n", __FUNCTION__));
-				
-//bill.jung@lge.com - Don't set up filter and Power save mode
-#if 0
+
 				power_mode = PM_FAST;
 				dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode,
 				                 sizeof(power_mode), TRUE, 0);
 
-				/* disable pkt filter */
-				dhd_set_packet_filter(0, dhd);
-#endif
-//bill.jung@lge.com - Don't set up filter and Power save mode
 				/* disable pkt filter */
 				dhd_set_packet_filter(0, dhd);
 
@@ -729,7 +711,7 @@ static void dhd_suspend_resume_helper(struct dhd_info *dhd, int val)
 	DHD_OS_WAKE_LOCK(dhdp);
 	/* Set flag when early suspend was called */
 	dhdp->in_suspend = val;
-	if ((!dhdp->suspend_disable_flag) && (dhd_check_ap_wfd_mode_set(dhdp) == FALSE))
+	if (!dhdp->suspend_disable_flag)
 		dhd_set_suspend(val, dhdp);
 	DHD_OS_WAKE_UNLOCK(dhdp);
 }
@@ -3248,6 +3230,8 @@ static int dhd_preinit_proc(dhd_pub_t *dhd, int ifidx, char *name, char *value)
 		x.band = WLC_BAND_ALL;
 		return dhd_wl_ioctl_cmd(dhd, strcmp(name, "roam_delta") ?
 				WLC_SET_ROAM_TRIGGER : WLC_SET_ROAM_DELTA, &x, sizeof(x), TRUE, 0);
+//micha.laqua@gmail.com - don't set PM via config file
+#if 0
 	} else if (!strcmp(name, "PM")) {
 		var_int = (int)simple_strtol(value, NULL, 0);
 		
@@ -3263,6 +3247,8 @@ static int dhd_preinit_proc(dhd_pub_t *dhd, int ifidx, char *name, char *value)
 
 		return dhd_wl_ioctl_cmd(dhd, WLC_SET_PM,
 				&var_int, sizeof(var_int), TRUE, 0);
+#endif
+//micha.laqua@gmail.com - don't set PM via config file
 //LGE_CHANGE_S, moon-wifi@lge.com by wo0ngs 2012-06-12, BTAMP HT Channel Set		
 #ifdef WLBTAMP
 	}else if(!strcmp(name, "btamp_chan")) {
@@ -3472,19 +3458,26 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	char eventmask[WL_EVENTING_MASK_LEN];
 	char iovbuf[WL_EVENTING_MASK_LEN + 12];	/*  Room for "event_msgs" + '\0' + bitvec  */
 
-	//bill.jung@lge.com - For config file setup
-	//uint power_mode = PM_FAST;
-	//bill.jung@lge.com - For config file setup
+	uint power_mode = PM_FAST;
 	uint32 dongle_align = DHD_SDALIGN;
 	uint32 glom = 0;
+#ifdef BCMCCX
 	uint bcn_timeout = 8;  // for CCX
+#else
+	uint bcn_timeout = 4;
+#endif
 	uint retry_max = 3;
 #if defined(ARP_OFFLOAD_SUPPORT)
 	int arpoe = 1;
 #endif
-	int scan_assoc_time = 5; //DHD_SCAN_ACTIVE_TIME;   // for CCX
 	int scan_unassoc_time = 40;
-	int scan_passive_time = 50; //DHD_SCAN_PASSIVE_TIME;   // for CCX
+#ifdef BCMCCX
+	int scan_assoc_time = 5;  // for CCX
+	int scan_passive_time = 50;  // for CCX
+#else
+	int scan_assoc_time = DHD_SCAN_ACTIVE_TIME;
+	int scan_passive_time = DHD_SCAN_PASSIVE_TIME;
+#endif
 	char buf[WLC_IOCTL_SMLEN];
 	char *ptr;
 	uint32 listen_interval = LISTEN_INTERVAL; /* Default Listen Interval in Beacons */
@@ -3569,7 +3562,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 			arpoe = 0;
 #endif /* (ARP_OFFLOAD_SUPPORT) */
 #ifdef PKT_FILTER_SUPPORT
-			dhd_pkt_filter_enable = FALSE;
+			dhd_pkt_filter_enable = TRUE;
 #endif
 		}
 	}
@@ -3636,9 +3629,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		DHD_ERROR(("%s assoc_listen failed %d\n", __FUNCTION__, ret));
 
 	/* Set PowerSave mode */
-	//bill.jung@lge.com - For config file setup
-	//dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode, sizeof(power_mode), TRUE, 0);
-	//bill.jung@lge.com - For config file setup
+	dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode, sizeof(power_mode), TRUE, 0);
 
 	/* Match Host and Dongle rx alignment */
 	bcm_mkiovar("bus:txglomalign", (char *)&dongle_align, 4, iovbuf, sizeof(iovbuf));
@@ -3727,10 +3718,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	setbit(eventmask, WLC_E_PFN_NET_FOUND);
 #endif /* PNO_SUPPORT */
 	/* enable dongle roaming event */
+#ifdef BCMCCX	
 	setbit(eventmask, WLC_E_ROAM_START);   // for CCX
 	setbit(eventmask, WLC_E_ROAM_PREP);    // for CCX
-	setbit(eventmask, WLC_E_ROAM);
 	setbit(eventmask, WLC_E_TRACE);        // for CCX
+#endif
+	setbit(eventmask, WLC_E_ROAM);
 #ifdef WL_CFG80211
 	setbit(eventmask, WLC_E_ESCAN_RESULT);
 	if ((dhd->op_mode & WFD_MASK) == WFD_MASK) {
@@ -3784,7 +3777,8 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	dhd->pktfilter[2] = NULL;
 	dhd->pktfilter[3] = NULL;
 #ifdef CONFIG_COMMON_PATCH
-	dhd->pktfilter[4] = "104 0 0 0 0xFFFFFF 0x01005E";
+	/* Add filter to pass multicastDNS packet and NOT filter out as Broadcast */
+	dhd->pktfilter[4] = "104 0 0 0 0xFFFFFFFFFFFF 0x01005E0000FB";
 #endif
 #if defined(SOFTAP)
 	if (ap_fw_loaded) {
@@ -4968,7 +4962,12 @@ int net_os_rxfilter_add_remove(struct net_device *dev, int add_remove, int num)
 	char *filterp = NULL;
 	int ret = 0;
 
+#ifdef CONFIG_COMMON_PATCH
+	if (!dhd || (num == DHD_UNICAST_FILTER_NUM) ||
+		(num == DHD_MDNS_FILTER_NUM))
+#else
 	if (!dhd || (num == DHD_UNICAST_FILTER_NUM))
+#endif
 		return ret;
 	if (num >= dhd->pub.pktfilter_count)
 		return -EINVAL;
@@ -5869,3 +5868,4 @@ void htsf_update(dhd_info_t *dhd, void *data)
 }
 
 #endif /* WLMEDIA_HTSF */
+

@@ -953,7 +953,6 @@ wl_show_host_event(wl_event_msg_t *event, void *event_data)
 		       (int)auth_type));
 		break;
 	}
-#if 0  // 0808, add for Fast-roam with CCKM
 	/* show any appended data */
 	if (datalen) {
 		buf = (uchar *) event_data;
@@ -962,7 +961,6 @@ wl_show_host_event(wl_event_msg_t *event, void *event_data)
 			DHD_EVENT((" 0x%02x ", *buf++));
 		DHD_EVENT(("\n"));
 	}
-#endif // 0808, add for Fast-roam with CCKM
 }
 #endif /* SHOW_EVENTS */
 
