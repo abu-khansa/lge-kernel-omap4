@@ -1,0 +1,9 @@
+diff a/arch/arm/configs/cyanogenmod_p760_defconfig b/arch/arm/configs/cyanogenmod_p760_defconfig	(rejected hunks)
+@@ -172,6 +172,7 @@ CONFIG_LBDAF=y
+ CONFIG_IOSCHED_NOOP=y
+ CONFIG_IOSCHED_DEADLINE=y
+ CONFIG_IOSCHED_CFQ=y
++CONFIG_IOSCHED_SIO=y
+ # CONFIG_DEFAULT_DEADLINE is not set
+ # CONFIG_DEFAULT_CFQ is not set
+ CONFIG_DEFAULT_NOOP=y

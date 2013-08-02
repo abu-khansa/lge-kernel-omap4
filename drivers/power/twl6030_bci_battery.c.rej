@@ -1,0 +1,29 @@
+diff a/drivers/power/twl6030_bci_battery.c b/drivers/power/twl6030_bci_battery.c	(rejected hunks)
+@@ -319,6 +319,9 @@ struct twl6030_bci_device_info {
+ 
+ 	int			use_hw_charger;
+ 	int			use_power_path;
++
++	/* max scale current based on sense resitor */
++	int			current_max_scale;
+ };
+ 
+ static BLOCKING_NOTIFIER_HEAD(notifier_list);
+@@ -2344,6 +2361,17 @@ static int __devinit twl6030_bci_battery_probe(struct platform_device *pdev)
+ 	di->ac_next_refresh = jiffies - 1;
+ 	platform_set_drvdata(pdev, di);
+ 
++	/* calculate current max scale from sense */
++	if (pdata->sense_resistor_mohm) {
++		di->current_max_scale = (62000) / pdata->sense_resistor_mohm;
++	} else {
++		/* Set sensible defaults if platform data is missing */
++		if (di->features & TWL6032_SUBCLASS)
++			di->current_max_scale = 3100;
++		else
++			di->current_max_scale = 6200;
++	}
++
+ 	wake_lock_init(&chrg_lock, WAKE_LOCK_SUSPEND, "ac_chrg_wake_lock");
+ 
+ 	if (di->errata & TWL6032_ERRATA_DB00119490) {
