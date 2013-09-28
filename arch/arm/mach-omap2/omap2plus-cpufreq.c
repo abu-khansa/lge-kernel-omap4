@@ -69,10 +69,8 @@ static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
 #ifdef CONFIG_OMAP4430_GPU_OVERCLOCK
-
-static const int gpu_max_freqs[] = { 153600000, 307200000, 384000000 }; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
-
-#define DEFAULT_MAX_GPU_FREQUENCY_INDEX  2
+static const int gpu_max_freqs[] = { 153600000, 307200000, 384000000, 416000000 }; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
+#define DEFAULT_MAX_GPU_FREQUENCY_INDEX 3
 
 static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
 
@@ -746,7 +744,8 @@ static ssize_t store_uv_mv_table(struct cpufreq_policy *policy,	const char *buf,
 			ret = sscanf(buf, "%lu", &volt_cur);
 			
 			if(ret != 1) {
-				return -EINVAL;
+				count = -EINVAL; 
+				goto lbl_exit;
 			}
 
 			/* alter voltage opp */
