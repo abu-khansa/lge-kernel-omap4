@@ -32,6 +32,17 @@ config IOSCHED_SIO
 	  needed (as any sector can be accesed in a constant time, regardless of 
 	  its physical location).  
 
+config IOSCHED_ROW
+   tristate "ROW I/O scheduler"
+    default y
+   ---help---
+     The ROW I/O scheduler gives priority to READ requests over the
+     WRITE requests when dispatching, without starving WRITE requests.
+     Requests are kept in priority queues. Dispatching is done in a RR
+     manner when the dispatch quantum for each queue is calculated
+     according to queue priority.
+     Most suitable for mobile devices.
+
 config IOSCHED_CFQ
 	tristate "CFQ I/O scheduler"
 	# If BLK_CGROUP is a module, CFQ has to be built as module.
@@ -64,6 +75,16 @@ choice
 	config DEFAULT_DEADLINE
 		bool "Deadline" if IOSCHED_DEADLINE=y
 
+	config DEFAULT_ROW
+		bool "ROW" if IOSCHED_ROW=y
+		help
+		  The ROW I/O scheduler gives priority to READ requests
+		  over the WRITE requests when dispatching, without starving
+		  WRITE requests. Requests are kept in priority queues.
+		  Dispatching is done in a RR manner when the dispatch quantum
+		  for each queue is defined according to queue priority.
+		  Most suitable for mobile devices.
+
 	config DEFAULT_CFQ
 		bool "CFQ" if IOSCHED_CFQ=y
 
@@ -81,6 +102,7 @@ config DEFAULT_IOSCHED
 	default "cfq" if DEFAULT_CFQ
 	default "noop" if DEFAULT_NOOP
 	default "sio" if DEFAULT_SIO
+	default "row" if DEFAULT_ROW
 
 endmenu
 
