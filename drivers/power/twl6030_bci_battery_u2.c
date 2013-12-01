@@ -2391,7 +2391,7 @@ static void twl6030_bci_battery_work(struct work_struct *work)
 #endif
 
 	charger_schedule_delayed_work(&di->twl6030_bci_monitor_work,
-			msecs_to_jiffies(1000 * di->monitoring_interval));
+			msecs_to_jiffies(5000 * di->monitoring_interval));
 
 	charging_ic_status = get_charging_ic_status();
 #if defined(CONFIG_MAX8971_CHARGER)&&  defined(CONFIG_MACH_LGE_P2_DCM)
