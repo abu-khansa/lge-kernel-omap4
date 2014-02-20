@@ -69,7 +69,7 @@ static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
 
-static const int gpu_max_freqs[] = {307200000, 384000000,  420000000}; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
+static const int gpu_max_freqs[] = {153600000, 384000000,  420000000}; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
 
 #define DEFAULT_MAX_GPU_FREQUENCY_INDEX  2
 
@@ -84,7 +84,7 @@ static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
 // [antsvx] these shoudl match same in opp4xxx_data.c
 #define OMAP4430_VDD_CORE_OPP50_UV		 962000
 #define OMAP4430_VDD_CORE_OPP100_UV		1127000
-#define OMAP4430_VDD_CORE_OPP100B_UV      1250000
+#define OMAP4430_VDD_CORE_OPP100B_UV      1255000
 
 
 

@@ -13,7 +13,7 @@
 #include <mach/emif.h>
 
 const struct lpddr2_timings timings_samsung_400_mhz = {
-	.max_freq	= 466000000,
+	.max_freq	= 400000000,
 	 .RL    = 5,
    .tRPab    = 14,
    .tRCD    = 14,
@@ -36,7 +36,7 @@ const struct lpddr2_timings timings_samsung_400_mhz = {
 };
 
 const struct lpddr2_timings timings_samsung_333_mhz = {
-	.max_freq	= 366000000,
+	.max_freq	= 333000000,
 	.RL		= 5,
 	.tRPab    = 14,
    	.tRCD    = 14,
@@ -59,7 +59,7 @@ const struct lpddr2_timings timings_samsung_333_mhz = {
 };
 
 const struct lpddr2_timings timings_samsung_200_mhz = {
-	.max_freq	= 220000000,
+	.max_freq	= 200000000,
 	.RL		= 3,
 	.tRPab		= 21,
 	.tRCD		= 18,
@@ -134,3 +134,4 @@ struct lpddr2_device_info samsung_4G_S4 = {
 	.io_width	= LPDDR2_IO_WIDTH_32,
 	.emif_ddr_selfrefresh_cycles = 262144, // LGE_SJIT 2011-12-2 [jongrak.kwon@lge.com] resolving SDRAM performance loss
 };
+
