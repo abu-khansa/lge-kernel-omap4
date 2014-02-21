@@ -69,10 +69,6 @@ static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
 
-static const int gpu_max_freqs[] = { 153600000, 307200000, 384000000, 420000000 }; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
-#define DEFAULT_MAX_GPU_FREQUENCY_INDEX 3
-
-static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
 
 
 
@@ -83,10 +79,6 @@ static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
 #define OMAP4430_CPU_DEFAULT_MIN_FREQUENCY	200000
 #define OMAP4430_CPU_DEFAULT_MAX_FREQUENCY	1008000
 
-// [antsvx] these shoudl match same in opp4xxx_data.c
-#define OMAP4430_VDD_CORE_OPP50_UV		962000
-#define OMAP4430_VDD_CORE_OPP100_UV		1127000
-#define OMAP4430_VDD_CORE_OPP100B_UV		1250000
 
 
 
@@ -607,67 +599,6 @@ static int omap_cpu_exit(struct cpufreq_policy *policy)
 
 
 
-static ssize_t show_gpu_max_freq(struct cpufreq_policy *policy, char *buf)
-{
-	return sprintf(buf, "%d\n", gpu_max_freqs[gpu_freq_idx] / 1000000); // store frequecny in Mhz
-}
-
-static ssize_t store_gpu_max_freq(struct cpufreq_policy *policy, const char *buf, size_t size)
-{
-	int prev_idx;
-        struct device *dev;
-	int val, i, i_min, ret;
-
-	prev_idx = gpu_freq_idx;
-	if (prev_idx < 0 || prev_idx >= ARRAY_SIZE(gpu_max_freqs)) {
-		// shouldn't be here
-		pr_info("gpu_oc prev_idx error, bailing\n");	
-		return size;
-	}
-
-	sscanf(buf, "%d\n", &val);
-	
-	// [antsvx] can process values as: index into table (gpu_freq_val = 0..ARRAY_SIZE-1), frequency/MHz, frequency. Frequencies can be approximate.
-	
-	if ( val < 32 ) // small number, must be index 
-		gpu_freq_idx = val;
-	else {
-		if ( val < 10000000 ) val *= 1000000; // below 10Mhz, must be frequency in MHz
-		
-		for ( i = 0, i_min = INT_MAX; i < ARRAY_SIZE( gpu_max_freqs ); ++i )
-			if ( abs( val - gpu_max_freqs[i] ) < i_min ) {
-				gpu_freq_idx = i;
-				i_min = abs( val - gpu_max_freqs[i] );
-			}
-	}	
-         
-	if (gpu_freq_idx < 0) gpu_freq_idx = 0;
-	if (gpu_freq_idx >= ARRAY_SIZE(gpu_max_freqs) ) gpu_freq_idx = ARRAY_SIZE(gpu_max_freqs)-1;
-	if (prev_idx == gpu_freq_idx) return size;
-
-        dev = omap_hwmod_name_get_dev("gpu");
-	if (IS_ERR(dev)) {
-		pr_err("gpu_oc: no gpu device, bailing\n" );
-		return size;
-	}
-
-        for ( i = 0; i < ARRAY_SIZE(gpu_max_freqs); ++i ) // [antsvx] disable all higher frequencies and enable lower
-        	if ( i <= gpu_freq_idx ) { 
-			ret = opp_enable(dev, gpu_max_freqs[i]);
-			pr_info("gpu speed enabled:  %d, ret: %d\n", gpu_max_freqs[i], ret);
-                } else {
-        		ret = opp_disable(dev, gpu_max_freqs[i]);
-        		pr_info("gpu speed disabled: %d, ret: %d\n", gpu_max_freqs[i], ret);
-		}
-	
-	return size;
-}
-
-static struct freq_attr omap_cpufreq_attr_gpu_max_freq = {
-	.attr = { .name = "gpu_max_freq", .mode = 0644,},
-	.show = show_gpu_max_freq,
-	.store = store_gpu_max_freq,
-};
 
 /*
  * OMAP4 MPU voltage control via cpufreq by Michael Huang (coolbho3k)
@@ -867,7 +798,6 @@ static struct freq_attr omap_cpufreq_attr_iva_freq_oc = {
 
 static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
-	&omap_cpufreq_attr_gpu_max_freq,
 	&omap_uv_mv_table,
 	&omap_cpufreq_attr_iva_freq_oc,
 	&omap_cpufreq_attr_screen_off_freq,
@@ -926,7 +856,7 @@ static int __init omap_cpufreq_init(void)
 	int ret;
 
 
-	gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
+	
 
 
 
