@@ -68,42 +68,41 @@ static unsigned int current_cooling_level;
 static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
-#ifdef CONFIG_OMAP4430_GPU_OVERCLOCK
-static const int gpu_max_freqs[] = { 153600000, 307200000, 384000000, 416000000 }; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
+
+static const int gpu_max_freqs[] = { 153600000, 307200000, 384000000, 420000000 }; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
 #define DEFAULT_MAX_GPU_FREQUENCY_INDEX 3
 
 static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
 
-#endif
 
-#ifdef CONFIG_OMAP4430_CPU_OVERCLOCK
+
+
 
 #include "smartreflex.h"
 
-#define OMAP4430_CPU_DEFAULT_MIN_FREQUENCY	300000
+#define OMAP4430_CPU_DEFAULT_MIN_FREQUENCY	200000
 #define OMAP4430_CPU_DEFAULT_MAX_FREQUENCY	1008000
 
 // [antsvx] these shoudl match same in opp4xxx_data.c
 #define OMAP4430_VDD_CORE_OPP50_UV		962000
 #define OMAP4430_VDD_CORE_OPP100_UV		1127000
-#define OMAP4430_VDD_CORE_OPP100_OV_UV		1250000
+#define OMAP4430_VDD_CORE_OPP100B_UV		1250000
 
-#endif
 
-#ifdef CONFIG_OMAP4430_IVA_OVERCLOCK
+
+
 
 #define OMAP4430_IVA_OC_FREQUENCY 430000000 // must match value in opp4xxx_data.c
 
 static int iva_freq_oc = 0; // boolean flag
 
-#endif
 
 #define ENABLE_SLEEP_MAX_FREQUENCY
 
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
 static unsigned int screen_off_max_freq = 0;
 static unsigned int max_freq_cap = 0;
-#endif
+
 
 static unsigned int omap_getspeed(unsigned int cpu)
 {
@@ -132,10 +131,10 @@ static int omap_cpufreq_scale(unsigned int target_freq, unsigned int cur_freq)
 	if (freqs.new > max_thermal)
 		freqs.new = max_thermal;
   
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
 	if (max_freq_cap && freqs.new > max_freq_cap)
 		freqs.new = max_freq_cap;
-#endif
+
 
 	if ((freqs.old == freqs.new) && (cur_freq = freqs.new))
 		return 0;
@@ -314,7 +313,7 @@ static void omap_cpu_early_suspend(struct early_suspend *h)
 
 	mutex_lock(&omap_cpufreq_lock);
 
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
 	if (screen_off_max_freq) {
 		max_freq_cap = screen_off_max_freq;
 
@@ -322,7 +321,7 @@ static void omap_cpu_early_suspend(struct early_suspend *h)
 		if (cur > max_freq_cap)
 			omap_cpufreq_scale(max_freq_cap, cur);
 	}
-#endif
+
 
 	mutex_unlock(&omap_cpufreq_lock);
 }
@@ -333,7 +332,7 @@ static void omap_cpu_late_resume(struct early_suspend *h)
 
 	mutex_lock(&omap_cpufreq_lock);
 	
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
 	if (max_freq_cap) {
 		max_freq_cap = 0;
 
@@ -341,7 +340,7 @@ static void omap_cpu_late_resume(struct early_suspend *h)
 		if (cur != current_target_freq)
 			omap_cpufreq_scale(current_target_freq, cur);
 	}
-#endif
+
 
 	mutex_unlock(&omap_cpufreq_lock);
 }
@@ -352,7 +351,7 @@ static struct early_suspend omap_cpu_early_suspend_handler = {
 	.resume = omap_cpu_late_resume,
 };
 
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
 
 static ssize_t show_screen_off_freq(struct cpufreq_policy *policy, char *buf)
 {
@@ -401,7 +400,6 @@ struct freq_attr omap_cpufreq_attr_screen_off_freq = {
 	.store = store_screen_off_freq,
 };
 
-#endif //ENABLE_SLEEP_MAX_FREQUENCY
 
 #if defined(CONFIG_THERMAL_FRAMEWORK) || defined(CONFIG_OMAP4_DUTY_CYCLE)
 void omap_thermal_step_freq_down(void)
@@ -565,13 +563,10 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
 
 	policy->min = policy->cpuinfo.min_freq;
-#ifdef CONFIG_OMAP4430_CPU_OVERCLOCK
+
 	policy->min = OMAP4430_CPU_DEFAULT_MIN_FREQUENCY;
 	policy->max = OMAP4430_CPU_DEFAULT_MAX_FREQUENCY;
-#else  
-	policy->min = policy->cpuinfo.min_freq;
-	policy->max = policy->cpuinfo.max_freq;
-#endif
+
 	policy->cur = omap_getspeed(policy->cpu);
 
 	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
@@ -592,7 +587,7 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 	}
 
 	/* FIXME: what's the actual transition time? */
-	policy->cpuinfo.transition_latency = 300 * 1000;
+	policy->cpuinfo.transition_latency = 30 * 1000;
 
 	return 0;
 
@@ -610,7 +605,7 @@ static int omap_cpu_exit(struct cpufreq_policy *policy)
 	return 0;
 }
 
-#ifdef CONFIG_OMAP4430_GPU_OVERCLOCK
+
 
 static ssize_t show_gpu_max_freq(struct cpufreq_policy *policy, char *buf)
 {
@@ -673,9 +668,7 @@ static struct freq_attr omap_cpufreq_attr_gpu_max_freq = {
 	.show = show_gpu_max_freq,
 	.store = store_gpu_max_freq,
 };
-#endif // CONFIG_OMAP4430_GPU_OVERCLOCK
 
-#ifdef CONFIG_OMAP4430_CPU_OVERCLOCK
 /*
  * OMAP4 MPU voltage control via cpufreq by Michael Huang (coolbho3k)
  *
@@ -761,8 +754,8 @@ static ssize_t store_uv_mv_table(struct cpufreq_policy *policy,	const char *buf,
 				case OMAP4430_VDD_CORE_OPP100_UV: 
 					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP100_UV ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP100_UV;
 					break;
-				case OMAP4430_VDD_CORE_OPP100_OV_UV:
-					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP100_OV_UV ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP100_OV_UV;
+				case OMAP4430_VDD_CORE_OPP100B_UV:
+					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP100B_UV ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP100B_UV;
 					break;
 				default:
 					pr_err("cpu uv/mv core dependent volt => %u\n", mpu_voltdm->vdd->dep_vdd_info->dep_table[i].dep_vdd_volt);
@@ -809,9 +802,7 @@ static struct freq_attr omap_uv_mv_table = {
 	.store = store_uv_mv_table,
 };
 
-#endif // CONFIG_OMAP4430_CPU_OVERCLOCK
 
-#ifdef CONFIG_OMAP4430_IVA_OVERCLOCK
 
 static ssize_t show_iva_freq_oc(struct cpufreq_policy *policy, char *buf)
 {
@@ -872,22 +863,15 @@ static struct freq_attr omap_cpufreq_attr_iva_freq_oc = {
 	.store = store_iva_freq_oc,
 };
 
-#endif // CONFIG_OMAP4430_IVA_OVERCLOCK
+
 
 static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
-#ifdef CONFIG_OMAP4430_GPU_OVERCLOCK
 	&omap_cpufreq_attr_gpu_max_freq,
-#endif
-#ifdef CONFIG_OMAP4430_CPU_OVERCLOCK
 	&omap_uv_mv_table,
-#endif
-#ifdef CONFIG_OMAP4430_IVA_OVERCLOCK
 	&omap_cpufreq_attr_iva_freq_oc,
-#endif
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
 	&omap_cpufreq_attr_screen_off_freq,
-#endif
+
 	NULL,
 };
 
@@ -941,18 +925,18 @@ static int __init omap_cpufreq_init(void)
 {
 	int ret;
 
-#ifdef CONFIG_OMAP4430_GPU_OVERCLOCK
+
 	gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
-#endif
 
-#ifdef CONFIG_OMAP4430_IVA_OVERCLOCK
+
+
 	iva_freq_oc = 0;
-#endif
 
-#ifdef ENABLE_SLEEP_MAX_FREQUENCY
+
+
 	screen_off_max_freq = 0;
 	max_freq_cap = 0;
-#endif
+
 
 
 	if (cpu_is_omap24xx())
