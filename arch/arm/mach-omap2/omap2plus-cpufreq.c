@@ -44,8 +44,6 @@
 
 #include "dvfs.h"
 
-#include "smartreflex.h"
-
 #ifdef CONFIG_SMP
 struct lpj_info {
 	unsigned long	ref;
@@ -71,12 +69,22 @@ static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
 
+static const int gpu_max_freqs[] = {153600000, 384000000,  420000000}; // [antsvx]: must match opp4xxx_data.c:omap443x_opp_def_list gpu table high frequencies
 
+#define DEFAULT_MAX_GPU_FREQUENCY_INDEX  2
+
+static int gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
+
+
+#include "smartreflex.h"
 
 #define OMAP4430_CPU_DEFAULT_MIN_FREQUENCY	200000
 #define OMAP4430_CPU_DEFAULT_MAX_FREQUENCY	1008000
 
-static int oc_val;
+// [antsvx] these shoudl match same in opp4xxx_data.c
+#define OMAP4430_VDD_CORE_OPP50_UV		 962000
+#define OMAP4430_VDD_CORE_OPP100_UV		1127000
+#define OMAP4430_VDD_CORE_OPP100B_UV      1250000
 
 
 
@@ -99,203 +107,6 @@ static unsigned int omap_getspeed(unsigned int cpu)
 
 	rate = clk_get_rate(mpu_clk) / 1000;
 	return rate;
-}
-
-
-/*
-* OMAP4 MPU voltage control via cpufreq by Michael Huang (coolbho3k)
-*
-* Note: Each opp needs to have a discrete entry in both volt data and
-* dependent volt data (in opp4xxx_data.c), or voltage control breaks. Make a
-* new voltage entry for each opp. Keep this in mind when adding extra
-* frequencies.
-*/
-
-/* struct opp is defined elsewhere, but not in any accessible header files */
-struct opp {
-        struct list_head node;
-
-        bool available;
-        unsigned long rate;
-        unsigned long u_volt;
-
-        struct device_opp *dev_opp;
-};
-
-static ssize_t show_uv_mv_table(struct cpufreq_policy *policy, char *buf)
-{
-int i = 0;
-unsigned long volt_cur;
-char *out = buf;
-struct opp *opp_cur;
-
-/* Reverse order sysfs entries for consistency */
-while(freq_table[i].frequency != CPUFREQ_TABLE_END)
-                i++;
-
-/* For each entry in the cpufreq table, print the voltage */
-for(i--; i >= 0; i--) {
-if(freq_table[i].frequency != CPUFREQ_ENTRY_INVALID) {
-/* Find the opp for this frequency */
-rcu_read_lock();
-opp_cur = opp_find_freq_exact(mpu_dev,
-freq_table[i].frequency*1000, true);
-rcu_read_unlock();
-/* sprint the voltage (mV)/frequency (MHz) pairs */
-volt_cur = opp_cur->u_volt;
-out += sprintf(out, "%umhz: %lu mV\n",
-freq_table[i].frequency/1000, volt_cur/1000);
-}
-}
-        return out-buf;
-}
-
-static ssize_t store_uv_mv_table(struct cpufreq_policy *policy,
-const char *buf, size_t count)
-{
-int i = 0;
-int j;
-unsigned long volt_cur, volt_old;
-int ret;
-char size_cur[16];
-struct opp *opp_cur;
-struct voltagedomain *mpu_voltdm;
-struct omap_volt_data *vdata;
-unsigned int policymin, policymax;
-
-mpu_voltdm = voltdm_lookup("mpu");
-
-while(freq_table[i].frequency != CPUFREQ_TABLE_END)
-i++;
-
-policymin = policy->min;
-policymax = policy->max;
- 
-for(i--; i >= 0; i--) {
-if(freq_table[i].frequency != CPUFREQ_ENTRY_INVALID) {
-ret = sscanf(buf, "%lu", &volt_cur);
-if(ret != 1) {
-return -EINVAL;
-}
-policy->cur = policy->max = policy->min = freq_table[i].frequency;
-         ret = omap_device_scale(mpu_dev, mpu_dev, freq_table[i].frequency);
-
-/* Alter voltage. First do it in our opp */
-rcu_read_lock();
-opp_cur = opp_find_freq_exact(mpu_dev,
-freq_table[i].frequency*1000, true);
-opp_cur->u_volt = volt_cur*1000;
-rcu_read_unlock();
-
-/* Then we need to alter voltage domains */
-/* Save our old voltage */
-volt_old = mpu_voltdm->vdd->volt_data[i].volt_nominal;
-/* Change our main and dependent voltage tables */
-mpu_voltdm->vdd->
-volt_data[i].volt_nominal = volt_cur*1000;
-mpu_voltdm->vdd->dep_vdd_info->
-dep_table[i].main_vdd_volt = volt_cur*1000;
-
-if (mpu_voltdm->vdd->dep_vdd_info->
-dep_table[i].dep_vdd_volt > volt_cur*1000) {
-// imoseyon - ugly hack (fix later! yeah right)
-if (volt_cur < 1127) {
-if (volt_cur < 962)
-mpu_voltdm->vdd->dep_vdd_info->
-dep_table[i].dep_vdd_volt = 650000;
-else
-mpu_voltdm->vdd->dep_vdd_info->
-dep_table[i].dep_vdd_volt = 962000;
-} else mpu_voltdm->vdd->dep_vdd_info->
-dep_table[i].dep_vdd_volt = 1127000;
-}
-
-/* Alter current voltage in voltdm, if appropriate */
-/* imoseyon - don't need it anymore
-if(volt_old == mpu_voltdm->curr_volt->volt_nominal) {
-mpu_voltdm->curr_volt->volt_nominal = volt_cur*1000;
-}
-*/
-
-/* Non-standard sysfs interface: advance buf */
-ret = sscanf(buf, "%s", size_cur);
-buf += (strlen(size_cur)+1);
-
-// imoseyon - force smartreflex to recalibrate based on new voltages
-if (freq_table[i].frequency <= 1200000 &&
-freq_table[i].frequency >= policymin) {
-vdata = omap_voltage_get_curr_vdata(mpu_voltdm);
-if (!vdata) {
-pr_err("%s: [imoseyon] unable to find current volt for vdd_%s\n",
-__func__, mpu_voltdm->name);
-} else {
-//for (j=0; j<2; j++)
-// if nominal volt is too large bail
-if (volt_old > mpu_voltdm->curr_volt->volt_nominal) {
-omap_sr_disable(mpu_voltdm);
-         ret = omap_device_scale(mpu_dev, mpu_dev, freq_table[i].frequency);
-omap_voltage_calib_reset(mpu_voltdm);
-voltdm_reset(mpu_voltdm);
-omap_sr_enable(mpu_voltdm, vdata);
-pr_info("[imoseyon] calibration reset for %s at %d.\n",
-mpu_voltdm->name, policy->cur);
-//msleep(1000);
-//pr_info("[imoseyon] calibration should have finished.\n\n");
-} else
-pr_info("[imoseyon] nominal volt too high - bailing!\n");
-}
-}
-}
-else {
-pr_err("%s: frequency entry invalid for %u\n",
-__func__, freq_table[i].frequency);
-}
-}
-policy->min = policymin;
-policy->max = policymax;
-return count;
-}
-
-static struct freq_attr omap_uv_mv_table = {
-.attr = {.name = "UV_mV_table", .mode=0644,},
-.show = show_uv_mv_table,
-.store = store_uv_mv_table,
-};
-
-/*
-* Variable GPU OC - sysfs interface for cycling through different GPU top speeds
-* Author: imoseyon@gmail.com
-*
-*/
-static ssize_t show_gpu_oc(struct cpufreq_policy *policy, char *buf)
-{
-return sprintf(buf, "%d\n", oc_val);
-}
-static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size_t size)
-{
-int prev_oc, ret1, ret2;
-        struct device *dev;
-unsigned long gpu_freqs[3] = {153000000,384000000,420000000};
-
-prev_oc = oc_val;
-if (prev_oc < 0 || prev_oc > 2) {
-// shouldn't be here
-pr_info("[imoseyon] gpu_oc error - bailing\n");	
-return size;
-}
-
-sscanf(buf, "%d\n", &oc_val);
-if (oc_val < 0 ) oc_val = 0;
-if (oc_val > 2 ) oc_val = 2;
-if (prev_oc == oc_val) return size;
-
-        dev = omap_hwmod_name_get_dev("gpu");
-        ret1 = opp_disable(dev, gpu_freqs[prev_oc]);
-        ret2 = opp_enable(dev, gpu_freqs[oc_val]);
-        pr_info("[imoseyon] gpu top speed changed from %lu to %lu (%d,%d)\n",
-gpu_freqs[prev_oc], gpu_freqs[oc_val], ret1, ret2);
-
-return size;
 }
 
 static int omap_cpufreq_scale(unsigned int target_freq, unsigned int cur_freq)
@@ -576,16 +387,6 @@ out:
 	return ret;
 }
 
-static struct freq_attr gpu_oc = {
-
-	.attr = {.name = "gpu_oc", .mode=0666,},
-
-	.show = show_gpu_oc,
-
-	.store = store_gpu_oc,
-
-};
-
 struct freq_attr omap_cpufreq_attr_screen_off_freq = {
 	.attr = { .name = "screen_off_max_freq", .mode = 0644, },
 	.show = show_screen_off_freq,
@@ -799,6 +600,208 @@ static int omap_cpu_exit(struct cpufreq_policy *policy)
 }
 
 
+
+static ssize_t show_gpu_max_freq(struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", gpu_max_freqs[gpu_freq_idx] / 1000000); // store frequecny in Mhz
+}
+
+static ssize_t store_gpu_max_freq(struct cpufreq_policy *policy, const char *buf, size_t size)
+{
+	int prev_idx;
+        struct device *dev;
+	int val, i, i_min, ret;
+
+	prev_idx = gpu_freq_idx;
+	if (prev_idx < 0 || prev_idx >= ARRAY_SIZE(gpu_max_freqs)) {
+		// shouldn't be here
+		pr_info("gpu_oc prev_idx error, bailing\n");	
+		return size;
+	}
+
+	sscanf(buf, "%d\n", &val);
+	
+	// [antsvx] can process values as: index into table (gpu_freq_val = 0..ARRAY_SIZE-1), frequency/MHz, frequency. Frequencies can be approximate.
+	
+	if ( val < 32 ) // small number, must be index 
+		gpu_freq_idx = val;
+	else {
+		if ( val < 10000000 ) val *= 1000000; // below 10Mhz, must be frequency in MHz
+		
+		for ( i = 0, i_min = INT_MAX; i < ARRAY_SIZE( gpu_max_freqs ); ++i )
+			if ( abs( val - gpu_max_freqs[i] ) < i_min ) {
+				gpu_freq_idx = i;
+				i_min = abs( val - gpu_max_freqs[i] );
+			}
+	}	
+         
+	if (gpu_freq_idx < 0) gpu_freq_idx = 0;
+	if (gpu_freq_idx >= ARRAY_SIZE(gpu_max_freqs) ) gpu_freq_idx = ARRAY_SIZE(gpu_max_freqs)-1;
+	if (prev_idx == gpu_freq_idx) return size;
+
+        dev = omap_hwmod_name_get_dev("gpu");
+	if (IS_ERR(dev)) {
+		pr_err("gpu_oc: no gpu device, bailing\n" );
+		return size;
+	}
+
+        for ( i = 0; i < ARRAY_SIZE(gpu_max_freqs); ++i ) // [antsvx] disable all higher frequencies and enable lower
+        	if ( i <= gpu_freq_idx ) { 
+			ret = opp_enable(dev, gpu_max_freqs[i]);
+			pr_info("gpu speed enabled:  %d, ret: %d\n", gpu_max_freqs[i], ret);
+                } else {
+        		ret = opp_disable(dev, gpu_max_freqs[i]);
+        		pr_info("gpu speed disabled: %d, ret: %d\n", gpu_max_freqs[i], ret);
+		}
+	
+	return size;
+}
+
+static struct freq_attr omap_cpufreq_attr_gpu_max_freq = {
+	.attr = { .name = "gpu_max_freq", .mode = 0644,},
+	.show = show_gpu_max_freq,
+	.store = store_gpu_max_freq,
+};
+
+
+
+/*
+ * OMAP4 MPU voltage control via cpufreq by Michael Huang (coolbho3k)
+ *
+ * Note: Each opp needs to have a discrete entry in both volt data and
+ * dependent volt data (in opp4xxx_data.c), or voltage control breaks. Make a
+ * new voltage entry for each opp. Keep this in mind when adding extra
+ * frequencies.
+ */
+
+/* struct opp is defined elsewhere, but not in any accessible header files */
+
+struct opp {
+        struct list_head node;
+
+        bool available;
+        unsigned long rate;
+        unsigned long u_volt;
+
+        struct device_opp *dev_opp;
+};
+
+static ssize_t show_uv_mv_table(struct cpufreq_policy *policy, char *buf)
+{
+	int i = 0;
+	unsigned long volt_cur;
+	char *out = buf;
+	struct opp *opp_cur;
+
+	/* Reverse order sysfs entries for consistency */
+	while(freq_table[i].frequency != CPUFREQ_TABLE_END)
+                i++;
+
+	/* For each entry in the cpufreq table, print the voltage */
+	for(i--; i >= 0; i--) {
+		if(freq_table[i].frequency != CPUFREQ_ENTRY_INVALID) {
+			/* Find the opp for this frequency */
+			opp_cur = opp_find_freq_exact(mpu_dev, freq_table[i].frequency*1000, true);
+			/* sprint the voltage (mV)/frequency (MHz) pairs */
+			volt_cur = opp_cur->u_volt;
+			out += sprintf(out, "%umhz: %lu mV\n", freq_table[i].frequency/1000, volt_cur/1000);
+		}
+	}
+        return out-buf;
+}
+
+static ssize_t store_uv_mv_table(struct cpufreq_policy *policy,	const char *buf, size_t count)
+{
+	int i = 0;
+	unsigned long volt_cur, volt_old;
+	int ret;
+	char size_cur[16];
+	struct opp *opp_cur;
+	struct voltagedomain *mpu_voltdm;
+	mpu_voltdm = voltdm_lookup("mpu");
+
+	mutex_lock(&omap_cpufreq_lock);
+
+	while(freq_table[i].frequency != CPUFREQ_TABLE_END)
+		i++;
+
+	omap_sr_disable_reset_volt(mpu_voltdm);
+
+	for(i--; i >= 0; i--) {
+		if(freq_table[i].frequency != CPUFREQ_ENTRY_INVALID) {
+			
+			ret = sscanf(buf, "%lu", &volt_cur);
+			
+			if(ret != 1) {
+				count = -EINVAL; 
+				goto lbl_exit;
+			}
+
+			/* alter voltage opp */
+			opp_cur = opp_find_freq_exact(mpu_dev, freq_table[i].frequency*1000, true);
+
+			opp_cur->u_volt = volt_cur * 1000;
+
+			/* limit mpu voltage to min core voltage to prevent DVFS stalls */
+			switch ( mpu_voltdm->vdd->dep_vdd_info->dep_table[i].dep_vdd_volt ) {
+				case OMAP4430_VDD_CORE_OPP50_UV:
+					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP50_UV ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP50_UV;
+					break;
+				case OMAP4430_VDD_CORE_OPP100_UV: 
+					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP100_UV ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP100_UV;
+					break;
+				case OMAP4430_VDD_CORE_OPP100B_UV :
+					if ( opp_cur->u_volt < OMAP4430_VDD_CORE_OPP100B_UV  ) opp_cur->u_volt = OMAP4430_VDD_CORE_OPP100B_UV ;
+					break;
+				default:
+					pr_err("cpu uv/mv core dependent volt => %u\n", mpu_voltdm->vdd->dep_vdd_info->dep_table[i].dep_vdd_volt);
+					pr_err("freq: %d, bad voltage value %lu, bailing\n", freq_table[i].frequency, opp_cur->u_volt);
+					goto lbl_exit;
+			}
+
+
+			/* alter voltage domains */
+			volt_old = mpu_voltdm->vdd->volt_data[i].volt_nominal;
+			/* change our main and dependent voltage tables */
+			mpu_voltdm->vdd->volt_data[i].volt_nominal = opp_cur->u_volt;
+			mpu_voltdm->vdd->dep_vdd_info->dep_table[i].main_vdd_volt = opp_cur->u_volt;
+
+			/* alter current voltage in voltdm, if appropriate */
+			if ( volt_old == mpu_voltdm->curr_volt->volt_nominal )
+				mpu_voltdm->curr_volt->volt_nominal = opp_cur->u_volt;
+
+			/* reset calibrated value */
+			mpu_voltdm->vdd->volt_data[i].volt_calibrated = 0;
+
+			/* Non-standard sysfs interface: advance buf */
+			ret = sscanf(buf, "%s", size_cur);
+			buf += (strlen(size_cur)+1);
+
+			pr_info("cpu uv/mv changed: freq: %d, volt_cur: %lu\n", freq_table[i].frequency, opp_cur->u_volt );
+		}
+		else {
+			pr_err("%s: frequency entry invalid for %u\n", __func__, freq_table[i].frequency);
+		}
+	}
+
+lbl_exit:
+	omap_sr_enable(mpu_voltdm, omap_voltage_get_curr_vdata(mpu_voltdm));
+
+	mutex_unlock(&omap_cpufreq_lock);
+
+	return count;
+}
+
+static struct freq_attr omap_uv_mv_table = {
+	.attr = {.name = "UV_mV_table", .mode=0644,},
+	.show = show_uv_mv_table,
+	.store = store_uv_mv_table,
+};
+
+
+
+
+
 static ssize_t show_iva_freq_oc(struct cpufreq_policy *policy, char *buf)
 {
 	return sprintf(buf, "%d\n", iva_freq_oc );
@@ -862,10 +865,10 @@ static struct freq_attr omap_cpufreq_attr_iva_freq_oc = {
 
 static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
+	&omap_cpufreq_attr_gpu_max_freq,
+	&omap_uv_mv_table,
 	&omap_cpufreq_attr_iva_freq_oc,
 	&omap_cpufreq_attr_screen_off_freq,
-	&gpu_oc,
-	&omap_uv_mv_table,
 	NULL,
 };
 
@@ -919,7 +922,10 @@ static int __init omap_cpufreq_init(void)
 {
 	int ret;
 
-	oc_val = 0;
+
+	gpu_freq_idx = DEFAULT_MAX_GPU_FREQUENCY_INDEX;
+
+
 
 	iva_freq_oc = 0;
 
@@ -976,7 +982,6 @@ static int __init omap_cpufreq_init(void)
 			pr_warn("%s: omap_duty_cooling_init failed\n",
 				__func__);
 	}
-
 
 	return ret;
 }
