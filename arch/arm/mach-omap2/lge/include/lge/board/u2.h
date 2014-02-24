@@ -56,6 +56,7 @@
 #define GPIO_MHL_INT		161
 #define GPIO_MHL_SEL		41
 #define GPIO_MHL_EN		157
+#define OMAP4SDP_MDM_PWR_EN_GPIO	157
 #define GPIO_MHL_RST		162
 #define GPIO_MHL_WAKE_UP	163
 

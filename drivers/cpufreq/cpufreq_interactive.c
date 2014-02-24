@@ -305,9 +305,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 			if (new_freq < hispeed_freq)
 			new_freq = hispeed_freq;
-	} else if (boosted) {
-		new_freq = input_boost_freq;
-	} else {
+	}  else {
 		new_freq = choose_freq(pcpu, loadadjfreq);
 	}
 
