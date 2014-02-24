@@ -92,6 +92,7 @@ struct omap4_ldo_abb_trim_data {
 #define CONFIG_OMAP4430_OVERCLOCK
 
 
+
 #define OMAP4430_VDD_MPU_OPP25_UV                 990000 //  200 Mhz
 #define OMAP4430_VDD_MPU_OPP50_UV                1005000 //  300 Mhz
 #define OMAP4430_VDD_MPU_OPP100_UV                1185000 //  600 Mhz
@@ -111,7 +112,7 @@ struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITRO_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITRO, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITROSB_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITROSB, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITROSB2_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITROSB2, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
-	//VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITROSB4_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITROSB2, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
+	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITROSB4_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITROSB2, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
 	VOLT_DATA_DEFINE(0, 0, 0, 0, 0, 0),
 };
 
@@ -132,6 +133,7 @@ struct omap_volt_data omap443x_vdd_iva_volt_data[] = {
 #define OMAP4430_VDD_CORE_OPP50_UV		 962000
 #define OMAP4430_VDD_CORE_OPP100_UV		1127000
 #define OMAP4430_VDD_CORE_OPP100B_UV      1250000
+
 
 struct omap_volt_data omap443x_vdd_core_volt_data[] = {
 	VOLT_DATA_DEFINE(OMAP4430_VDD_CORE_OPP50_UV, 0, OMAP44XX_CONTROL_FUSE_CORE_OPP50, 0xf4, 0x0c, OMAP_ABB_NONE),
@@ -158,7 +160,7 @@ static struct omap_vdd_dep_volt omap443x_vdd_mpu_core_dep_data[] = {
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITRO_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB2_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
-	//{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB4_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB4_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 };
 
 struct omap_vdd_dep_info omap443x_vddmpu_dep_info[] = {
@@ -204,8 +206,8 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP5 - OPP-SB */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1200000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
 #endif //##	
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1360000000, OMAP4430_VDD_MPU_OPPNITROSB2_UV),
-	//OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1398000000, OMAP4430_VDD_MPU_OPPNITROSB4_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1350000000, OMAP4430_VDD_MPU_OPPNITROSB2_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1398000000, OMAP4430_VDD_MPU_OPPNITROSB4_UV),
 	/* L3 OPP1 - OPP50 */
 	OPP_INITIALIZER("l3_main_1", "virt_l3_ck", "core", true, 100000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* L3 OPP2 - OPP100, OPP-Turbo, OPP-SB */
@@ -735,7 +737,7 @@ omap4_opp_enable("mpu", 1450800000);
 	/* Enable Nitro and NitroSB MPU OPPs */
 	if (omap4_has_mpu_1_2ghz())
 		omap4_opp_enable("mpu", 1200000000);
-		//omap4_opp_enable("mpu", 1398000000);
+		omap4_opp_enable("mpu", 1398000000);
 	if (!trimmed)
 		pr_info("This is DPLL un-trimmed SOM. OPP is limited at 1.2 GHz\n");
 	//if (omap4_has_mpu_1_5ghz() && trimmed)
