@@ -173,7 +173,7 @@ static struct regulator_consumer_supply twl6030_vusb_supply[] = {
 };
 
 static struct regulator_consumer_supply twl6030_vaux1_supply[] = {
-	REGULATOR_SUPPLY("vaux1", omap_hsmmc.1),
+	REGULATOR_SUPPLY("vaux1", "omap_hsmmc.1"),
 };
 
 /* over EVB_BOARD */

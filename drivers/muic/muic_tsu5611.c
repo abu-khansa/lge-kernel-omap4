@@ -521,8 +521,7 @@ static void muic_tsu5611_set_mode(struct i2c_client *client, u8 int_status1_val)
 		case MUIC_AP_UART :
 		case MUIC_CP_UART :
 			if((int_status1_val & VBUS) == 0) {
-				 if((int_status1_val & VBUS) == 0) {
-         dev_info(&client->dev, "%s: UART is removed\n", __func__);
+          dev_info(&client->dev, "%s: UART is removed\n", __func__);
 
 				/* TODO: Why set OPEN???? */
 				muic_i2c_write_byte(client, SW_CONTROL, OPEN);
