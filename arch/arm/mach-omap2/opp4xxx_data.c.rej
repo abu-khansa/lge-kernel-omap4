@@ -1,0 +1,28 @@
+diff a/arch/arm/mach-omap2/opp4xxx_data.c b/arch/arm/mach-omap2/opp4xxx_data.c	(rejected hunks)
+@@ -153,7 +153,7 @@ struct omap_volt_data omap443x_vdd_core_volt_data[] = {
+ static struct omap_vdd_dep_volt omap443x_vdd_mpu_core_dep_data[] = {
+ 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP25_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+ 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP50_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+-	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
++	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+ 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPTURBO_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+ 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITRO_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+ 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+@@ -204,7 +204,7 @@ struct omap_vdd_dep_info omap443x_vddiva_dep_info[] = {
+ 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1200000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
+ #endif //##	
+ 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1350000000, OMAP4430_VDD_MPU_OPPNITROSB2_UV),
+-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1490000000, OMAP4430_VDD_MPU_OPPNITROSB4_UV),
++	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1500000000, OMAP4430_VDD_MPU_OPPNITROSB4_UV),
+ 	/* L3 OPP1 - OPP50 */
+ 	OPP_INITIALIZER("l3_main_1", "virt_l3_ck", "core", true, 100000000, OMAP4430_VDD_CORE_OPP50_UV),
+ 	/* L3 OPP2 - OPP100, OPP-Turbo, OPP-SB */
+@@ -734,7 +734,7 @@ int __init omap4_opp_init(void)
+ 	if (!trimmed)
+ 		pr_info("This is DPLL un-trimmed SOM. OPP is limited at 1.2 GHz\n");
+ 	//if (omap4_has_mpu_1_5ghz() && trimmed)
+-		omap4_opp_enable("mpu", 1490000000);
++		omap4_opp_enable("mpu", 1500000000);
+ 
+ out:
+ 	return r;
