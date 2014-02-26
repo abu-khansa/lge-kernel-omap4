@@ -20,6 +20,7 @@
 
 #ifdef CONFIG_ASYNC_FSYNC
 #include <linux/statfs.h>
+#include <linux/fuse.h>
 #endif
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
