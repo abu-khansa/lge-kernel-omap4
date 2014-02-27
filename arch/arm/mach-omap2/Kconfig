@@ -553,12 +553,6 @@ config OMAP4430_IVA_OVERCLOCK
 	depends on ARCH_OMAP4
 	default n
 
-config INTELLI_PLUG
-	bool "Enable intelli-plug cpu hotplug driver"
-	default n
-	help
-	  Generic Intelli-plug cpu hotplug driver for ARM SOCs
-
 endmenu
 
 endif
