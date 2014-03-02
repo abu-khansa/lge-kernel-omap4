@@ -44,11 +44,11 @@
 #if defined(VIBE_DEBUG) && defined(VIBE_RECORD)
 #include <tspdrvRecorder.c>
 #endif
-// LGE_CHANGE [jaekyung.oh@lge.com] 2011-09-04,[P940]For Rev.C TSPDEV	.
+//                                                                     
 #include <linux/lge/pwm-vibrator.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
-/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+/*                                                                        */
 #include "../../staging/android/timed_output.h"
 #include <linux/hrtimer.h>
 
@@ -108,8 +108,8 @@ static int g_nMajor = 0;
 #define TSPDRV_TUNING_ARG1	_IO(TSPDRV_MAGIC_NUMBER & 0xFF, 185)
 #endif
  
-/* LGE_SJIT 2011-12-01 [dojip.kim@lge.com]
- * To make it as platform-independent driver
+/*                                        
+                                            
  */
 struct pwm_vib_data *pwm_priv = NULL;
 
@@ -315,7 +315,6 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
 #ifdef QA_TEST
 	int i;
 #endif
-	VibeInt8 nForce[1] = {128};
 
 	//printk("{tspdrv} : ioctl cmd = %x\n", cmd);
 
@@ -357,12 +356,6 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
 		file->private_data = (void*)TSPDRV_MAGIC_NUMBER;
 		break;
 
-        case TSPDRV_ENABLE_TIMED_AMP:
-            ImmVibeSPI_ForceOut_AmpEnable(0);
-            ImmVibeSPI_ForceOut_SetSamples(0, 8, 1, nForce);
-            VibeOSKernelLinuxAutoTimer(*((int*)arg));
-            break;
-
 	case TSPDRV_ENABLE_AMP:
 		ImmVibeSPI_ForceOut_AmpEnable(arg);
 		DbgRecorderReset((arg));
@@ -390,7 +383,7 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
 	return 0;
 }
 
-/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+/*                                                                        */
 #if defined(CONFIG_TSPDRV_TIMED_OUTPUT)
 static enum hrtimer_restart vibrator_timer_func(struct hrtimer *timer)
 {
@@ -448,9 +441,9 @@ static int vibrator_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "tspdrv: %s: no memory\n", __func__);
 		return -ENOMEM;
 	}
-	/* LGE_SJIT 2011-12-01 [dojip.kim@lge.com]
-	 * To make it as platform-independent driver
-	 */
+	/*                                        
+                                             
+  */
 	pwm_priv = data;
 
 	if (pdata) {
@@ -492,7 +485,7 @@ static int vibrator_probe(struct platform_device *pdev)
 		g_SamplesBuffer[i].actuatorSamples[1].nBufferSize = 0;
 	}
 
-	/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+	/*                                                                        */
 #if defined(CONFIG_TSPDRV_TIMED_OUTPUT)
 	spin_lock_init(&vibe_lock);
 
@@ -514,7 +507,7 @@ static int vibrator_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "tspdrv: probed\n");
 	return 0;
 
-/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+/*                                                                        */
 #if defined(CONFIG_TSPDRV_TIMED_OUTPUT)
 	timed_output_dev_unregister(&timed_dev);
 err_timed_output_dev_register:
@@ -559,14 +552,14 @@ static int vibrator_resume(struct platform_device *pdev)
 
 static int vibrator_remove(struct platform_device *pdev)
 {
-	/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+	/*                                                                        */
 	struct pwm_vib_data *data = platform_get_drvdata(pdev);
 
 	DbgOut((KERN_INFO "tspdrv: cleanup_module.\n"));
 
 	DbgRecorderTerminate(());
 
-	/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] support for timed output class */
+	/*                                                                        */
 #if defined(CONFIG_TSPDRV_TIMED_OUTPUT)
 	timed_output_dev_unregister(&timed_dev);
 	hrtimer_cancel(&vibe_timer);
@@ -576,7 +569,7 @@ static int vibrator_remove(struct platform_device *pdev)
 	ImmVibeSPI_ForceOut_Terminate();
 	misc_deregister(&miscdev);
 
-	/* LGE_SJIT 2011-11-30 [dojip.kim@lge.com] fix the memory leak */
+	/*                                                             */
 	kfree(data);
 
 	return 0;

@@ -110,6 +110,7 @@ static inline unsigned ecm_bitrate(struct usb_gadget *g)
 #define LOG2_STATUS_INTERVAL_MSEC	5	/* 1 << 5 == 32 msec */
 #ifdef CONFIG_LGE_ANDROID_USB
 #define ECM_STATUS_BYTECOUNT		64	/* (8 byte header + data)*4 */
+#define ECM_STATUS_NOTIFY_REQ_LEN	16	/* 8 byte header + data */
 #else
 #define ECM_STATUS_BYTECOUNT		16	/* 8 byte header + data */
 #endif
@@ -117,15 +118,19 @@ static inline unsigned ecm_bitrate(struct usb_gadget *g)
 
 /* interface descriptor: */
 
+/* Add Interface Association Descriptor to ECM */
 #ifdef CONFIG_LGE_ANDROID_USB
-struct usb_interface_assoc_descriptor ecm_iad = {
-	.bLength =		sizeof ecm_iad,
-	.bDescriptorType   = USB_DT_INTERFACE_ASSOCIATION,
-	.bInterfaceCount   = 2,
-	.bFunctionClass    = USB_CLASS_COMM,
-	.bFunctionSubClass = USB_CDC_SUBCLASS_ETHERNET,
-	.bFunctionProtocol = USB_CDC_PROTO_NONE,
-	.iFunction         = 0,
+static struct usb_interface_assoc_descriptor
+ecm_iad_descriptor = {
+	.bLength =		sizeof ecm_iad_descriptor,
+	.bDescriptorType =	USB_DT_INTERFACE_ASSOCIATION,
+
+	/* .bFirstInterface =	DYNAMIC, */
+	.bInterfaceCount =	2,	/* control + data */
+	.bFunctionClass =	USB_CLASS_COMM,
+	.bFunctionSubClass =	USB_CDC_SUBCLASS_ETHERNET,
+	.bFunctionProtocol =	USB_CDC_PROTO_NONE,
+	/* .iFunction =		DYNAMIC */
 };
 #endif
 
@@ -240,11 +245,11 @@ static struct usb_endpoint_descriptor fs_ecm_out_desc = {
 };
 
 static struct usb_descriptor_header *ecm_fs_function[] = {
-#ifdef CONFIG_LGE_ANDROID_USB
-	/* interface association descriptors */
-	(struct usb_descriptor_header *) &ecm_iad,
-#endif
 	/* CDC ECM control descriptors */
+#ifdef CONFIG_LGE_ANDROID_USB
+	/* Add Interface Association Descriptor to ECM */
+	(struct usb_descriptor_header *) &ecm_iad_descriptor,
+#endif
 	(struct usb_descriptor_header *) &ecm_control_intf,
 	(struct usb_descriptor_header *) &ecm_header_desc,
 	(struct usb_descriptor_header *) &ecm_union_desc,
@@ -280,6 +285,7 @@ static struct usb_endpoint_descriptor hs_ecm_notify_desc = {
 	.bInterval =		LOG2_STATUS_INTERVAL_MSEC + 4,
 #endif
 };
+
 static struct usb_endpoint_descriptor hs_ecm_in_desc = {
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
@@ -299,11 +305,11 @@ static struct usb_endpoint_descriptor hs_ecm_out_desc = {
 };
 
 static struct usb_descriptor_header *ecm_hs_function[] = {
-#ifdef CONFIG_LGE_ANDROID_USB
-	/* interface association descriptors */
-	(struct usb_descriptor_header *) &ecm_iad,
-#endif
 	/* CDC ECM control descriptors */
+#ifdef CONFIG_LGE_ANDROID_USB
+	/* Add Interface Association Descriptor to ECM */
+	(struct usb_descriptor_header *) &ecm_iad_descriptor,
+#endif
 	(struct usb_descriptor_header *) &ecm_control_intf,
 	(struct usb_descriptor_header *) &ecm_header_desc,
 	(struct usb_descriptor_header *) &ecm_union_desc,
@@ -330,6 +336,10 @@ static struct usb_string ecm_string_defs[] = {
 	[0].s = "CDC Ethernet Control Model (ECM)",
 	[1].s = NULL /* DYNAMIC */,
 	[2].s = "CDC Ethernet Data",
+/* Add Interface Association Descriptor to ECM */
+#ifdef CONFIG_LGE_ANDROID_USB
+	[3].s = "CDC ECM",
+#endif
 	{  } /* end of list */
 };
 
@@ -380,8 +390,12 @@ static void ecm_do_notify(struct f_ecm *ecm)
 		event->bNotificationType = USB_CDC_NOTIFY_SPEED_CHANGE;
 		event->wValue = cpu_to_le16(0);
 		event->wLength = cpu_to_le16(8);
+/* Does not work USB tethering on linux */
+#ifdef CONFIG_LGE_ANDROID_USB		
+		req->length = ECM_STATUS_NOTIFY_REQ_LEN;
+#else
 		req->length = ECM_STATUS_BYTECOUNT;
-
+#endif
 		/* SPEED_CHANGE data is up/down speeds in bits/sec */
 		data = req->buf + sizeof *event;
 		data[0] = cpu_to_le32(ecm_bitrate(cdev->gadget));
@@ -550,12 +564,8 @@ static int ecm_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 			/* Enable zlps by default for ECM conformance;
 			 * override for musb_hdrc (avoids txdma ovhead).
 			 */
-#ifndef CONFIG_LGE_ANDROID_USB
-			ecm->port.is_zlp_ok = !(gadget_is_msm72k(cdev->gadget));
-#else
 			ecm->port.is_zlp_ok = !(gadget_is_musbhdrc(cdev->gadget)
 				);
-#endif
 			ecm->port.cdc_filter = DEFAULT_FILTER;
 			DBG(cdev, "activate ecm\n");
 			net = gether_connect(&ecm->port);
@@ -665,8 +675,9 @@ ecm_bind(struct usb_configuration *c, struct usb_function *f)
 		goto fail;
 	ecm->ctrl_id = status;
 
+/* Add Interface Association Descriptor to ECM */
 #ifdef CONFIG_LGE_ANDROID_USB
-	ecm_iad.bFirstInterface = status;
+	ecm_iad_descriptor.bFirstInterface = status;
 #endif
 
 	ecm_control_intf.bInterfaceNumber = status;
@@ -840,8 +851,8 @@ ecm_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
 		ecm_string_defs[0].id = status;
 		ecm_control_intf.iInterface = status;
 
-#ifdef CONFIG_LGE_ANDROID_USB
 /* mac string descriptor set index 5 */
+#ifdef CONFIG_LGE_ANDROID_USB
 		/* MAC address */
 		status = usb_string_id(c->cdev);
 		if (status < 0)
@@ -864,6 +875,16 @@ ecm_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
 			return status;
 		ecm_string_defs[1].id = status;
 		ecm_desc.iMACAddress = status;
+#endif
+
+/* Add Interface Association Descriptor to ECM */
+#ifdef CONFIG_LGE_ANDROID_USB
+		/* IAD label */
+		status = usb_string_id(c->cdev);
+		if (status < 0)
+			return status;
+		ecm_string_defs[3].id = status;
+		ecm_iad_descriptor.iFunction = status;
 #endif
 	}
 

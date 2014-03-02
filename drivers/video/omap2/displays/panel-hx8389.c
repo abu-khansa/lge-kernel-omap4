@@ -81,9 +81,9 @@ extern int ssc_enable;
 static irqreturn_t hx8389_panel_te_isr(int irq, void *data);
 static void hx8389_panel_te_timeout_work_callback(struct work_struct *work);
 static int _hx8389_panel_enable_te(struct omap_dss_device *dssdev, bool enable);
-//LGE_CHANGE_S [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 extern int dispc_enable_gamma(enum omap_channel ch, u8 gamma);
-//LGE_CHANGE_E [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 #define DSI_GEN_SHORTWRITE_NOPARAM 0x3
 #define DSI_GEN_SHORTWRITE_1PARAM 0x13
 #define DSI_GEN_SHORTWRITE_2PARAM 0x23
@@ -371,7 +371,7 @@ static int hx8389_panel_sleep_out(struct hx8389_panel_data *td)
 
 	hw_guard_start(td, 150);
 
-	//jongho3.lee@lge.com excute sleep for 120ms
+	//                                          
 	hw_guard_wait(td);
 
 	return 0;
@@ -748,7 +748,7 @@ static ssize_t display_file_tuning_store(struct device *dev,
 }
 static DEVICE_ATTR(file_tuning, 0660, NULL, display_file_tuning_store);
 #endif
-//LGE_CHANGE_S [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 extern int dispc_set_gamma_rgb(enum omap_channel ch, u8 gamma,int red,int green,int blue);
 static ssize_t display_gamma_tuning_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -852,7 +852,7 @@ static ssize_t display_init_code_store(struct device *dev,
 static DEVICE_ATTR(init_code, 0660, display_init_code_show, display_init_code_store);
 
 static DEVICE_ATTR(gamma_tuning, 0660, display_gamma_tuning_show, display_gamma_tuning_store);
-//LGE_CHANGE_E [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 static ssize_t display_porch_value_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
        struct omap_dss_device *dssdev = to_dss_device(dev);
@@ -952,9 +952,9 @@ static ssize_t hx8389_panel_store_esd_interval(struct device *dev,
 
 	return count;
 }
-//LGE_CHANGE_S [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 extern int dispc_enable_gamma(enum omap_channel ch, u8 gamma);
-//LGE_CHANGE_E [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 
 static ssize_t hx8389_panel_show_esd_interval(struct device *dev,
 		struct device_attribute *attr,
@@ -1083,7 +1083,7 @@ static struct attribute *hx8389_panel_attrs[] = {
 	&dev_attr_esd_interval.attr,
 	&dev_attr_ulps.attr,
 	&dev_attr_ulps_timeout.attr,
-//LGE_CHANGE_S [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
     &dev_attr_gamma_tuning.attr,
 #if defined(CONFIG_LUT_FILE_TUNING)
     &dev_attr_file_tuning.attr,
@@ -1093,7 +1093,7 @@ static struct attribute *hx8389_panel_attrs[] = {
     &dev_attr_ssc_enable.attr,
     &dev_attr_init_code.attr,
 
-//LGE_CHANGE_E [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 	NULL,
 };
 
@@ -1372,12 +1372,12 @@ static int hx8389_panel_power_on(struct omap_dss_device *dssdev)
 			if (r)
 				goto err;
 		}
-//LGE_CHANGE_S [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 #if defined(CONFIG_U2_GAMMA)
 	dispc_enable_gamma(OMAP_DSS_CHANNEL_LCD, 0);
 	dispc_enable_gamma(OMAP_DSS_CHANNEL_LCD2, 0);
 #endif
-//LGE_CHANGE_E [jeonghoon.cho@lge.com] 2012-0208, P940 : Add sysfile for gamma tuning + at%kcal jeonghoon.cho@lge.com
+//                                                                                                                   
 	if(dssdev->phy.dsi.type == OMAP_DSS_DSI_TYPE_VIDEO_MODE){
 			r = hx8389_panel_dcs_write_0(td,DCS_DISPLAY_ON);
 			if (r)
@@ -1396,11 +1396,13 @@ static int hx8389_panel_power_on(struct omap_dss_device *dssdev)
 
 		omapdss_dsi_vc_enable_hs(dssdev, td->channel, true);
 
-		/* LGE_SJIT 2012-03-06 [choongryeol.lee@lge.com]
-		 * For ignoring "DISPC_IRQ_SYNC_LOST_DIGIT" that could be happened
-		 * when lcd is resumed, we set the "first_vsync" value as false for HDMI channel
-		 */
+		/*                                              
+                                                                    
+                                                                                  
+   */
+#ifdef CONFIG_OMAP4_DSS_HDMI
 		omap_dispc_set_first_vsync(OMAP_DSS_CHANNEL_DIGIT, false);
+#endif
 
 		if(dssdev->phy.dsi.type == OMAP_DSS_DSI_TYPE_VIDEO_MODE){
 			dsi_video_mode_enable(dssdev, 0x3e);
@@ -1547,8 +1549,11 @@ static int hx8389_panel_suspend(struct omap_dss_device *dssdev)
 
 	mutex_lock(&td->lock);
 
-	if (dssdev->state != OMAP_DSS_DISPLAY_ACTIVE) {
+	if (dssdev->state == OMAP_DSS_DISPLAY_DISABLED) {
 		r = -EINVAL;
+		goto err;
+	}else if (dssdev->state == OMAP_DSS_DISPLAY_SUSPENDED) {
+		r = 0;
 		goto err;
 	}
 
@@ -1608,11 +1613,11 @@ err:
 	return r;
 }
 
-/* LGE_SJIT 2012-02-15 [choongryeol.lee@lge.com]
-  *  When lcd is turned on, the garbage image can be displayed in command mode
-  *  The root cause of this problem is that DCS_DISPLAY_ON commnad is issued
-  *  before image data writting to the lcd gram.
-  *  So we send DCS_DISPLAY_ON command after first frame is written to lcd gram
+/*                                              
+                                                                              
+                                                                            
+                                                
+                                                                               
   */
 static void hx8389_panel_display_on_work(struct work_struct *work)
 {

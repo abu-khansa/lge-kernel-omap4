@@ -547,12 +547,12 @@ static int get_card_status(struct mmc_card *card, u32 *status, int retries)
 	struct mmc_command cmd = {0};
 	int err;
 
-	/* LGE_SJIT 2011-11-29 [dojip.kim@lge.com]
-	 * fix the freezing when removing the sdcard
-	 *
-	 * euikyeom.kim@lge.com 2011.02.11 immigrated from
-	 * hyoungsuk.jang@lge.com
-	 */
+	/*                                        
+                                             
+   
+                                                   
+                          
+  */
 #if defined(CONFIG_MMC_LGE_HW_DETECTION)
 	if (mmc_card_sd(card)) {
 		struct mmc_host *host = card->host;
@@ -977,10 +977,10 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 
 		mmc_queue_bounce_post(mq);
 
-		/* LGE_SJIT 2011-11-28 [dojip.kim@lge.com]
-		 * Enhanced the error handling
-		 * Don't redo I/O when ENOMEDIUM error.
-		 */
+		/*                                        
+                                
+                                         
+   */
 		if (brq.cmd.error == -ENOMEDIUM) {
 			goto cmd_err;
 		}
@@ -1093,12 +1093,12 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	if (mmc_card_sd(card)) {
 		u32 blocks;
 
-		/* LGE_SJIT 2011-11-29 [dojip.kim@lge.com]
-		 * fix the freezing when removing the sdcard
-		 *
-		 * euikyeom.kim@lge.com 2011.02.11 immigrated from
-		 * hyoungsuk.jang@lge.com
-		 */
+		/*                                        
+                                              
+    
+                                                    
+                           
+   */
 #if defined(CONFIG_MMC_LGE_HW_DETECTION)
 		struct mmc_host *host = card->host;
 		if (host && host->ops->get_cd &&
@@ -1122,10 +1122,10 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
  cmd_abort:
 	spin_lock_irq(&md->lock);
 	while (ret) {
-		/* LGE_SJIT 2011-11-28 [dojip.kim@lge.com]
-		 * Enhanced the error handling
-		 * Supressed the error message.
-		 */
+		/*                                        
+                                
+                                 
+   */
 		req->cmd_flags |= REQ_QUIET;
 		ret = __blk_end_request(req, -EIO, blk_rq_cur_bytes(req));
 	}

@@ -30,7 +30,7 @@
 
 #include <linux/i2c/twl.h>
 
-/* LGE_CHANGE [james.jang@lge.com] 2011-07-26, secure clock from star */
+/*                                                                    */
 #if defined(CONFIG_RTC_INTF_DRM_DEV)
 #include <linux/sched.h>
 #include <linux/wait.h>
@@ -138,14 +138,14 @@ static const u8 twl6030_rtc_reg_map[] = {
 #define ALL_TIME_REGS		6
 
 /*----------------------------------------------------------------------*/
-/* LGE_CHANGE_S [james.jang@lge.com] 2011-07-26, secure clock from star */
+/*                                                                      */
 #if defined(CONFIG_RTC_INTF_DRM_DEV)
 extern wait_queue_head_t drm_wait_queue;
 extern unsigned long drm_diff_time;
 extern int drm_sign;
 extern struct spinlock drm_lock;
 #endif
-/* LGE_CHANGE_S [james.jang@lge.com] 2011-07-26 */
+/*                                              */
 
 static u8  *rtc_reg_map;
 
@@ -298,7 +298,12 @@ static int twl_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	tm->tm_hour = bcd2bin(rtc_data[2]);
 	tm->tm_mday = bcd2bin(rtc_data[3]);
 	tm->tm_mon = bcd2bin(rtc_data[4]) - 1;
+/*                                                                                        */
+	if (bcd2bin(rtc_data[5]) < 70 )
 	tm->tm_year = bcd2bin(rtc_data[5]) + 100;
+	else
+		tm->tm_year = bcd2bin(rtc_data[5]) ;
+/*                                                 */
 
 	return ret;
 }
@@ -309,7 +314,7 @@ static int twl_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	unsigned char rtc_data[ALL_TIME_REGS + 1];
 	int ret;
 
-	/* LGE_CHANGE_S [james.jang@lge.com] 2011-07-26, secure clock from star */
+	/*                                                                      */
 	#if defined(CONFIG_RTC_INTF_DRM_DEV)
 	struct rtc_time tm_temp;
 	unsigned long prev_time, now;
@@ -343,14 +348,20 @@ static int twl_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	{
 		wake_up(&drm_wait_queue);
 	}
-	#endif /* LGE_CHANGE_S [james.jang@lge.com] 2011-07-26 */
+	#endif /*                                              */
 
 	rtc_data[1] = bin2bcd(tm->tm_sec);
 	rtc_data[2] = bin2bcd(tm->tm_min);
 	rtc_data[3] = bin2bcd(tm->tm_hour);
 	rtc_data[4] = bin2bcd(tm->tm_mday);
 	rtc_data[5] = bin2bcd(tm->tm_mon + 1);
-	rtc_data[6] = bin2bcd(tm->tm_year - 100);
+
+/*                                                                                        */
+	if (tm->tm_year < 100 )
+		rtc_data[6] = bin2bcd(tm->tm_year );
+	else
+	        rtc_data[6] = bin2bcd(tm->tm_year - 100);
+/*                                                 */
 
 	/* Stop RTC while updating the TC registers */
 	ret = twl_rtc_read_u8(&save_control, REG_RTC_CTRL_REG);

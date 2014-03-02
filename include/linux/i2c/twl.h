@@ -133,7 +133,7 @@
 #define REG_INT_MSK_STS_C		0x08
 
 /* MASK INT REG GROUP A */
-/* LGE_CHANGE_S [euiseop.shin@lge.com] 2011-04-13 */
+/*                                                */
 //kibum.lee
 #ifdef CONFIG_MACH_LGE
 #define TWL6030_PWR_INT_MASK 		0x03
@@ -141,7 +141,7 @@
 #else	/* original */
 #define TWL6030_PWR_INT_MASK 		0x07
 #endif
-/* LGE_CHANGE_E [euiseop.shin@lge.com] 2011-04-13 */
+/*                                                */
 
 #define TWL6030_RTC_INT_MASK 		0x18
 #define TWL6030_HOTDIE_INT_MASK 	0x20
@@ -671,18 +671,19 @@ struct twl4030_bci_platform_data {
 	unsigned int max_bat_voltagemV;
 	unsigned int low_bat_voltagemV;
 
-	/* twl6032 */
-	unsigned int use_hw_charger;
-	unsigned int use_power_path;
-	unsigned long features;
-	unsigned int use_eeprom_config;
+	unsigned int sense_resistor_mohm;
 
-	/* LGE_SJIT 2012-01-25 [dojip.kim@lge.com]
-	 * LGE specific platform data
-	 */
+	/* twl6032 */
+	unsigned long features;
+
+	/*                                        
+                              
+  */
 #ifdef CONFIG_MACH_LGE
 	int gpio_omap_send;
 #endif
+
+	unsigned long errata;
 };
 
 /* TWL4030_GPIO_MAX (18) GPIOs, with interrupts */
@@ -821,12 +822,12 @@ struct twl4030_codec_audio_data {
 	/* twl6040 */
 	int vddhf_uV;
 
-/* LGE_CHANGE_S [ty.lee@lge.com] 2010-10-20, Enable Headset detection */
+/*                                                                    */
 #if defined(CONFIG_MACH_LGE_COSMO_HW_A)
 	unsigned int hsjack_gpio;
 	unsigned int hsjack_irq;
 #endif
-/* LGE_CHANGE_E [ty.lee@lge.com] 2010-10-20 */
+/*                                          */
 };
 
 struct twl4030_codec_vibra_data {
@@ -919,9 +920,9 @@ struct twl4030_platform_data {
 	/* External control pins */
 	struct regulator_init_data		*sysen;
 	struct regulator_init_data		*regen1;
-/* LGE_SJIT 2011-11-16, from p940
- *
- * ORIG: [yehan.ahn@lge.com] 2011-06-09, add regen1, regen2
+/*                               
+  
+                                                           
  */
 #if defined(CONFIG_MACH_LGE)
     struct regulator_init_data              *regen2;
@@ -1039,10 +1040,10 @@ static inline int twl4030charger_usb_en(int enable) { return 0; }
 /* External control pins */
 #define TWL6030_REG_SYSEN	62
 #define TWL6030_REG_REGEN1	63
-/* LGE_SJIT 2011-11-16 [dojip.kim@lge.com] change the start num: 60 -> 80
- *
- * ORIG: [yehan.ahn@lge.com] 2011-06-09, add regen1, regen2
- * start num = 60, because of merging with TI. TI can use 49.
+/*                                                                       
+  
+                                                           
+                                                             
  */
 #if defined(CONFIG_MACH_LGE)
 #define TWL6030_REG_REGEN2	81
@@ -1229,7 +1230,8 @@ static inline int twl4030charger_usb_en(int enable) { return 0; }
 #define BB_SEL_2V6              (2 << 1)
 #define BB_SEL_VBAT             (3 << 1)
 
-#endif	/* CONFIG_MAHC_LGE */
-/* LGE_CHANGE_E [jongho3.lee@lge.com] ?-?-? */
+#endif	/*                 */
+/*                                          */
+#define TWL6032_ERRATA_DB00119490	(1 << 0)
 
 #endif /* End of __TWL4030_H */

@@ -30,14 +30,13 @@
 #include "dss.h"
 
 #include <video/hdmi_ti_4xxx_ip.h>
-#include <linux/earlysuspend.h>
 
 static struct {
 	struct mutex hdmi_lock;
 	struct switch_dev hpd_switch;
 } hdmi;
 
-// wooho47.jung@lge.com 2012.04.19
+//                                
 // ADD : for Hidden Menu
 static int nbestScore = 0;
 extern  struct omap_dss_device *get_hdmi_device(void);
@@ -154,7 +153,7 @@ static ssize_t hdmi_s3d_enable_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", r);
 }
 
-// wooho47.jung@lge.com 2012.04.19
+//                                
 // ADD : for Hidden Menu
 static ssize_t hdmi_bestScore_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -163,7 +162,7 @@ static ssize_t hdmi_bestScore_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", nbestScore);
 }
 
-// wooho47.jung@lge.com 2012.04.19
+//                                
 // ADD : for Hidden Menu
 static ssize_t hdmi_bestScore_store(struct device *dev,
 		struct device_attribute *attr,
@@ -189,7 +188,7 @@ static DEVICE_ATTR(s3d_type, S_IRUGO | S_IWUSR, hdmi_s3d_mode_show,
 static DEVICE_ATTR(edid, S_IRUGO, hdmi_edid_show, NULL);
 static DEVICE_ATTR(deepcolor, S_IRUGO | S_IWUSR, hdmi_deepcolor_show,
 							hdmi_deepcolor_store);
-// wooho47.jung@lge.com 2012.04.19
+//                                
 // ADD : for Hidden Menu
 static DEVICE_ATTR(bestScore, S_IRUGO | S_IWUSR, hdmi_bestScore_show,
 							hdmi_bestScore_store);
@@ -199,7 +198,7 @@ static struct attribute *hdmi_panel_attrs[] = {
 	&dev_attr_s3d_type.attr,
 	&dev_attr_edid.attr,
 	&dev_attr_deepcolor.attr,
-    // wooho47.jung@lge.com 2012.04.19
+    //                                
     // ADD : for Hidden Menu
 	&dev_attr_bestScore.attr,
 	NULL,
@@ -209,37 +208,6 @@ static struct attribute_group hdmi_panel_attr_group = {
 	.attrs = hdmi_panel_attrs,
 };
 
-#if defined(CONFIG_MACH_LGE_COSMO_3D_DISPLAY) || defined(CONFIG_MACH_LGE_CX2)
-extern int hdmi_enable_s3d (struct omap_dss_device *dssdev, bool enable);
-extern int hdmi_get_s3d_enabled (struct omap_dss_device *dssdev);
-extern int hdmi_set_s3d_disp_type (struct omap_dss_device *dssdev, struct s3d_disp_info *info);
-extern int hdmi_get_s3d_disp_type (struct omap_dss_device *dssdev, struct s3d_disp_info *info);
-
-
-int hdmi_panel_enable_s3d (struct omap_dss_device *dssdev, bool enable)
-{
-        hdmi_enable_s3d(dssdev, enable);
-        return 0;
-}
-
-int hdmi_panel_get_s3d_enabled(struct omap_dss_device *dssdev)
-{
-        return hdmi_get_s3d_enabled(dssdev);
-}
-
-int hdmi_panel_set_s3d_disp_type(struct omap_dss_device *dssdev, struct s3d_disp_info *info)
-{
-
-        hdmi_set_s3d_disp_type(dssdev, info);
-        return 0;
-}
-int hdmi_panel_get_s3d_disp_type(struct omap_dss_device *dssdev, struct s3d_disp_info *info)
-{
-
-        return hdmi_get_s3d_disp_type(dssdev, info);
-}
-#endif
-
 static int hdmi_panel_probe(struct omap_dss_device *dssdev)
 {
 	DSSDBG("ENTER hdmi_panel_probe\n");
@@ -247,22 +215,25 @@ static int hdmi_panel_probe(struct omap_dss_device *dssdev)
 	dssdev->panel.config = OMAP_DSS_LCD_TFT |
 			OMAP_DSS_LCD_IVS | OMAP_DSS_LCD_IHS;
 
-// wooho47.jung@lge.com 2012.04.19
+// TODO: conflict with 4AJ.1.1 TI patch
+
+//                                
 // MOD : for default mode. p2 is not dvi, is hdmi.
-// LGE_CHANGE_S [sungho.jung@lge.com] 2012-04-03,  Change the default timings set [640*480 --> 1280*720]
-#if 0
+//                                                                                                      
+#if 1
 	/*
 	 * Initialize the timings to 640 * 480
 	 * This is only for framebuffer update not for TV timing setting
 	 * Setting TV timing will be done only on enable
 	 */
-	dssdev->panel.timings.x_res = 640;
-	dssdev->panel.timings.y_res = 480;
+	if (dssdev->panel.timings.x_res == 0)
+		dssdev->panel.timings = (struct omap_video_timings)
+			{640, 480, 31746, 128, 24, 29, 9, 40, 2};
 #else
 	dssdev->panel.timings.x_res = 1280;
-	dssdev->panel.timings.y_res = 720;
+    dssdev->panel.timings.y_res = 720;
 #endif
-// LGE_CHANGE_E [sungho.jung@lge.com] 2012-04-03
+//                                              
 
 	/* sysfs entry to provide user space control to set deepcolor mode */
 	if (sysfs_create_group(&dssdev->dev.kobj, &hdmi_panel_attr_group))
@@ -302,6 +273,7 @@ static int hdmi_panel_enable(struct omap_dss_device *dssdev)
 	}
 
 	dssdev->state = OMAP_DSS_DISPLAY_ACTIVE;
+	hdmi_inform_power_on_to_cec(true);
 err:
 	mutex_unlock(&hdmi.hdmi_lock);
 	HDMIDBG("error:%d\n", r);
@@ -313,7 +285,7 @@ static void hdmi_panel_disable(struct omap_dss_device *dssdev)
 {
 	HDMIDBG("ENTER \n");
 	mutex_lock(&hdmi.hdmi_lock);
-
+	hdmi_inform_power_on_to_cec(false);
 	if (dssdev->state == OMAP_DSS_DISPLAY_ACTIVE)
 		omapdss_hdmi_display_disable(dssdev);
 
@@ -326,11 +298,13 @@ static int hdmi_panel_suspend(struct omap_dss_device *dssdev)
 {
 	int r = 0;
 
-	HDMIDBG("ENTER  state=%d\n", dssdev->state);
+	HDMIDBG("ENTER \n");
 	mutex_lock(&hdmi.hdmi_lock);
 
 	if (dssdev->state != OMAP_DSS_DISPLAY_ACTIVE) {
-		r = -EINVAL;
+		/* We should enable "resume" event handler for case, when HDMI
+		 * display is plugged in while device was in suspend mode */
+		dssdev->activate_after_resume = true;
 		goto err;
 	}
 
@@ -347,13 +321,11 @@ static int hdmi_panel_resume(struct omap_dss_device *dssdev)
 {
 	int r = 0;
 
-	HDMIDBG("ENTER state=%d \n", dssdev->state);
+	HDMIDBG("ENTER \n");
 	mutex_lock(&hdmi.hdmi_lock);
 
-	if (dssdev->state != OMAP_DSS_DISPLAY_SUSPENDED) {
-		r = -EINVAL;
+	if (dssdev->state != OMAP_DSS_DISPLAY_SUSPENDED)
 		goto err;
-	}
 
 	dssdev->state = OMAP_DSS_DISPLAY_DISABLED;
 err:
@@ -364,14 +336,6 @@ err:
 	HDMIDBG("error:%d \n", r);
 	return r;
 }
-
-#ifndef CONFIG_MHL_TX_SII9244_LEGACY      //mo2sanghyun.lee 2012.07.13      
-static struct early_suspend hdmi_panel_earlysuspend = {
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB,
-	.suspend = hdmi_panel_suspend,
-	.resume = hdmi_panel_resume,
-};
-#endif
 
 enum {
 	HPD_STATE_OFF,
@@ -390,9 +354,9 @@ static void hdmi_hotplug_detect_worker(struct work_struct *work)
 {
 	struct hpd_worker_data *d = container_of(work, typeof(*d), dwork.work);
 	int state = atomic_read(&d->state);
-// LGE_CHANGE_S [sungho.jung@lge.com] 2012-04-03
+//                                              
 	struct omap_dss_device *dssdev = get_hdmi_device();
-// LGE_CHANGE_E [sungho.jung@lge.com] 2012-04-03
+//                                              
 
 	HDMIDBG("in hpd work %d, state=%d\n", state, dssdev->state);
 	pr_err("in hpd work %d, state=%d\n", state, dssdev->state);
@@ -402,6 +366,7 @@ static void hdmi_hotplug_detect_worker(struct work_struct *work)
 	mutex_lock(&hdmi.hdmi_lock);
 	if (state == HPD_STATE_OFF) {
 		switch_set_state(&hdmi.hpd_switch, 0);
+		hdmi_inform_hpd_to_cec(false);
 		if (dssdev->state == OMAP_DSS_DISPLAY_ACTIVE) {
 			mutex_unlock(&hdmi.hdmi_lock);
 			dssdev->driver->disable(dssdev);
@@ -431,6 +396,7 @@ static void hdmi_hotplug_detect_worker(struct work_struct *work)
 					dssdev->panel.monspecs.max_x * 10000;
 			dssdev->panel.height_in_um =
 					dssdev->panel.monspecs.max_y * 10000;
+			hdmi_inform_hpd_to_cec(true);
 			switch_set_state(&hdmi.hpd_switch, 1);
 			goto done;
 		} else if (state == HPD_STATE_EDID_TRYLAST){
@@ -505,6 +471,12 @@ static int hdmi_get_modedb(struct omap_dss_device *dssdev,
 	memcpy(modedb, specs->modedb, sizeof(*modedb) * modedb_len);
 	return modedb_len;
 }
+static void hdmi_get_resolution(struct omap_dss_device *dssdev,
+			       u16 *xres, u16 *yres)
+{
+	*xres = dssdev->panel.timings.x_res;
+	*yres = dssdev->panel.timings.y_res;
+}
 
 static struct omap_dss_driver hdmi_driver = {
 	.probe		= hdmi_panel_probe,
@@ -516,14 +488,9 @@ static struct omap_dss_driver hdmi_driver = {
 	.get_timings	= hdmi_get_timings,
 	.set_timings	= hdmi_set_timings,
 	.check_timings	= hdmi_check_timings,
+	.get_resolution = hdmi_get_resolution,
 	.get_modedb	= hdmi_get_modedb,
 	.set_mode	= omapdss_hdmi_display_set_mode,
-#if defined(CONFIG_MACH_LGE_COSMO_3D_DISPLAY) || defined(CONFIG_MACH_LGE_CX2)
-	.enable_s3d     = hdmi_panel_enable_s3d,
-	.get_s3d_enabled    = hdmi_panel_get_s3d_enabled,
-	.set_s3d_disp_type  = hdmi_panel_set_s3d_disp_type,
-	.get_s3d_disp_type      = hdmi_panel_get_s3d_disp_type,
-#endif	
 	.driver			= {
 		.name   = "hdmi_panel",
 		.owner  = THIS_MODULE,
@@ -535,9 +502,7 @@ int hdmi_panel_init(void)
 	mutex_init(&hdmi.hdmi_lock);
 	hdmi.hpd_switch.name = "hdmi";
 	switch_dev_register(&hdmi.hpd_switch);
-#ifndef CONFIG_MHL_TX_SII9244_LEGACY      //mo2sanghyun.lee 2012.07.13      
-	register_early_suspend(&hdmi_panel_earlysuspend);  
-#endif
+
 	my_workq = create_singlethread_workqueue("hdmi_hotplug");
 	INIT_DELAYED_WORK(&hpd_work.dwork, hdmi_hotplug_detect_worker);
 	omap_dss_register_driver(&hdmi_driver);

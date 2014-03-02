@@ -405,8 +405,6 @@ static ssize_t adb_write(struct file *fp, const char __user *buf,
 	pr_debug("adb_write returning %d\n", r);
 	return r;
 }
-extern void adb_ready_callback(void);
-extern void adb_closed_callback(void);
 
 static int adb_open(struct inode *ip, struct file *fp)
 {

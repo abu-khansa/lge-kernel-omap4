@@ -112,7 +112,7 @@ void __init lge_manipulate_cmdline(char *default_command_line)
 
 	/* add parameters */
 	for (i = 0; i < ARRAY_SIZE(cmdline_parameters); i++) {
-		/* LGE_CHANGE [james.jang@lge.com] 2012-05-08, to prevent stack overflow */
+		/*                                                                       */
 		static char param[COMMAND_LINE_SIZE];
 		memset(param, 0, COMMAND_LINE_SIZE);
 		if (strlen(cmdline_parameters[i].value) ||
@@ -130,10 +130,4 @@ void __init lge_manipulate_cmdline(char *default_command_line)
 #ifdef NO_CONSOLE_SUSPEND
 	no_console_suspend(s);
 #endif
-
-	if (matchstr(p, "chg=68") ||
-	     matchstr(p, "chg=66") ||
-	     matchstr(p, "chg=65")) {
-		strlcat(s, " androidboot.battchg_pause=true", COMMAND_LINE_SIZE);
-	}
 }

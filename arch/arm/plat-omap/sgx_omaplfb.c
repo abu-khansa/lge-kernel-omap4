@@ -35,14 +35,9 @@
 
 static struct sgx_omaplfb_config omaplfb_config[OMAPLFB_NUM_DEV] = {
 	{
-#if defined(CONFIG_COSMO_ICS_MEM_OPT) || defined (CONFIG_MACH_LGE_CX2)
-	.tiler2d_buffers = 0,
-	.vram_buffers = 2,
-	.swap_chain_length = 2,
-#else
-	.tiler2d_buffers = 2,
-	.swap_chain_length = 2,
-#endif
+		//                                                                                          
+		.tiler2d_buffers = 0, //2,
+		.swap_chain_length = 2,
 	}
 };
 

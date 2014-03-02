@@ -25,7 +25,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c/twl.h>
 #include <linux/regulator/consumer.h>
-#include <linux/cdc_tcxo.h>  //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24
+#include <linux/cdc_tcxo.h>  //                                              
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -107,12 +107,12 @@ static int sdp4430_modem_mcbsp_configure(struct snd_pcm_substream *substream,
 				omap_mcbsp_set_tx_threshold(
 					modem_rtd->cpu_dai->id, channels);
 		}
-#ifdef CONFIG_MACH_LGE_U2 //LGE_BSP seungdae.goh@lge.com 2012-05-30
-		ret = snd_soc_dai_set_sysclk(modem_rtd->cpu_dai, OMAP_MCBSP_SYSCLK_CLKX_EXT, 0, SND_SOC_CLOCK_IN);
-		if (ret) {
-			printk(KERN_ERR "can't set codec system clock\n");
-			goto exit;
-		}
+#if 1 //                                       
+                ret = snd_soc_dai_set_sysclk(modem_rtd->cpu_dai, OMAP_MCBSP_SYSCLK_CLKX_EXT, 0, SND_SOC_CLOCK_IN);
+                if (ret) {
+                    printk(KERN_ERR "can't set codec system clock\n");
+                    goto exit;
+                }
 #endif
 	} else {
 		mcbsp_cfg = 0;
@@ -167,7 +167,22 @@ static int sdp4430_mcpdm_startup(struct snd_pcm_substream *substream)
 
 	if (twl6040_power_mode) {
 
-                //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24 [START_LGE]
+                //                                                          
+#if 0 //Ti patch
+		clk_id = TWL6040_HPPLL_ID;
+		freq = 38400000;
+
+		/*
+		 * TWL6040 requires MCLK to be active as long as
+		 * high-performance mode is in use. Glitch-free mux
+		 * cannot tolerate MCLK gating
+		 */
+		ret = cdc_tcxo_set_req_int(CDC_TCXO_CLK2, 1);
+		if (ret) {
+			printk(KERN_ERR "failed to enable twl6040 MCLK\n");
+			goto err;
+		}
+#else                           
 		/*
 		 * TWL6040 requires MCLK to be active as long as
 		 * high-performance mode is in use. Glitch-free mux
@@ -178,10 +193,11 @@ static int sdp4430_mcpdm_startup(struct snd_pcm_substream *substream)
 			printk(KERN_ERR "failed to enable twl6040 MCLK\n");
 			return ret;
 		}
-                //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24 {END_LGE}
+                //                                                        
 
 		clk_id = TWL6040_HPPLL_ID;
 		freq = 38400000;
+#endif
 	} else {
 		clk_id = TWL6040_LPPLL_ID;
 		freq = 32768;
@@ -195,14 +211,14 @@ static int sdp4430_mcpdm_startup(struct snd_pcm_substream *substream)
 		goto err;
 	}
 
-        //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24 [START_LGE]
+        //                                                          
 	/* low-power mode uses 32k clock, MCLK is not required */
 	if (!twl6040_power_mode) {
 		ret = cdc_tcxo_set_req_int(CDC_TCXO_CLK3, 0);
 		if (ret)
 			printk(KERN_ERR "failed to disable twl6040 MCLK\n");
 	}
-        //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24 [END_LGE]
+        //                                                        
 
 	return 0;
 
@@ -254,7 +270,7 @@ static int sdp4430_mcbsp_hw_params(struct snd_pcm_substream *substream,
 	} else
 #endif	
 	 if (be_id == OMAP_ABE_DAI_BT_VX) {
-#if 1  //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-02-21   P2  BT I/F  DSP_A, IB_IF, CBM_CFM   (  SND_SOC_DAIFMT_PCM )
+#if 1  //                                                                                                            
              ret = snd_soc_dai_set_fmt(cpu_dai,
                                   SND_SOC_DAIFMT_DSP_A |
                                   SND_SOC_DAIFMT_IB_IF |
@@ -300,10 +316,10 @@ static int sdp4430_mcbsp_hw_params(struct snd_pcm_substream *substream,
 				     64 * params_rate(params),
 				     SND_SOC_CLOCK_IN);
 #else	
-// [LGE_START : klaus.hwang@lge.com : Fix uplink sound quality issue]	
+//                                                                    
 	ret = snd_soc_dai_set_sysclk(cpu_dai, OMAP_MCBSP_SYSCLK_CLKX_EXT,
 											  0, SND_SOC_CLOCK_IN);
-// [LGE_END : klaus.hwang@lge.com : Fix uplink sound quality issue]
+//                                                                 
 #endif
 	if (ret < 0)
 		printk(KERN_ERR "can't set cpu system clock\n");
@@ -338,13 +354,25 @@ static int sdp4430_dmic_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret = 0;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, OMAP_DMIC_SYSCLK_PAD_CLKS,
-				     19200000, SND_SOC_CLOCK_IN);
+	if (!rtd->dai_link->no_pcm)
+		ret = snd_soc_dai_set_sysclk(cpu_dai,
+				OMAP_DMIC_SYSCLK_SYNC_MUX_CLKS, 24000000,
+				SND_SOC_CLOCK_IN);
+	else
+		ret = snd_soc_dai_set_sysclk(cpu_dai,
+				OMAP_DMIC_SYSCLK_PAD_CLKS, 19200000,
+				SND_SOC_CLOCK_IN);
+
 	if (ret < 0) {
 		printk(KERN_ERR "can't set DMIC cpu system clock\n");
 		return ret;
 	}
-	ret = snd_soc_dai_set_clkdiv(cpu_dai, OMAP_DMIC_CLKDIV, 8);
+
+	if (!rtd->dai_link->no_pcm)
+		ret = snd_soc_dai_set_clkdiv(cpu_dai, OMAP_DMIC_CLKDIV, 10);
+	else
+		ret = snd_soc_dai_set_clkdiv(cpu_dai, OMAP_DMIC_CLKDIV, 8);
+
 	if (ret < 0) {
 		printk(KERN_ERR "can't set DMIC cpu clock divider\n");
 		return ret;
@@ -366,10 +394,11 @@ static int mcbsp_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
                                        SNDRV_PCM_HW_PARAM_CHANNELS);
 	unsigned int be_id = rtd->dai_link->be_id;
 
-	if (be_id == OMAP_ABE_DAI_MM_FM)
-		channels->min = 2;
-	else if (be_id == OMAP_ABE_DAI_BT_VX)
+	if (be_id == OMAP_ABE_DAI_BT_VX)
 		channels->min = 1;
+	else
+		channels->min = 2;
+
 	snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT -
 	                            SNDRV_PCM_HW_PARAM_FIRST_MASK],
 	                            SNDRV_PCM_FORMAT_S16_LE);
@@ -382,9 +411,12 @@ static int dmic_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 {
 	struct snd_interval *rate = hw_param_interval(params,
 			SNDRV_PCM_HW_PARAM_RATE);
+	struct snd_interval *channels = hw_param_interval(params,
+			SNDRV_PCM_HW_PARAM_CHANNELS);
 
 	/* The ABE will covert the FE rate to 96k */
 	rate->min = rate->max = 96000;
+	channels->min = channels->max = 2;
 
 	snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT -
 	                            SNDRV_PCM_HW_PARAM_FIRST_MASK],
@@ -526,6 +558,10 @@ static int sdp4430_set_pdm_dl1_gains(struct snd_soc_dapm_context *dapm)
 		else
 			/* HSDACL in HP mode */
 			output = OMAP_ABE_DL1_HEADSET_HP;
+#if !defined(CONFIG_SND_OMAP_SOC_ABE_DL2)
+	} else if (snd_soc_dapm_get_pin_power(dapm, "Ext Spk")) {
+		output = OMAP_ABE_DL1_HANDSFREE;
+#endif
 	} else {
 		output = OMAP_ABE_DL1_NO_PDM;
 	}
@@ -590,8 +626,11 @@ static int sdp4430_twl6040_init(struct snd_soc_pcm_runtime *rtd)
 	ret = snd_soc_jack_add_pins(&hs_jack, ARRAY_SIZE(hs_jack_pins),
 				hs_jack_pins);
 
-	if (machine_is_p2() || machine_is_lghdk() || machine_is_iff() || machine_is_u2() || machine_is_cosmo() || machine_is_cx2())
+//  Need Fix
+//	if (machine_is_p2() || machine_is_lghdk() || machine_is_iff() || machine_is_u2())
 		twl6040_hs_jack_detect(codec, &hs_jack, SND_JACK_HEADSET);
+//	else
+//		snd_soc_jack_report(&hs_jack, SND_JACK_HEADSET, SND_JACK_HEADSET);
 
 	/* DC offset cancellation computation */
 	hsotrim = snd_soc_read(codec, TWL6040_REG_HSOTRIM);
@@ -877,10 +916,10 @@ static struct snd_soc_dai_link sdp4430_dai[] = {
 		.stream_name = "Multimedia",
 
 		/* ABE components - MCBSP2 - MM-EXT */
-		/* LGE_SJIT 2011-12-21 [dojip.kim@lge.com]
-		 * FM Digital use McBSP3
-		 * samin.ryu@lge.com 110621 in B2(P940) FM Digital use McBSP3
-		 */
+		/*                                        
+                          
+                                                               
+   */
 		.cpu_dai_name = "omap-mcbsp-dai.2",
 		.platform_name = "omap-pcm-audio",
 
@@ -1041,10 +1080,10 @@ static struct snd_soc_dai_link sdp4430_dai[] = {
 		.stream_name = "FM",
 
 		/* ABE components - MCBSP2 - MM-EXT */
-		/* LGE_SJIT 2011-12-21 [dojip.kim@lge.com]
-		 * FM Digital use McBSP3
-		 * samin.ryu@lge.com 110621 in B2(P940) FM Digital use McBSP3
-		 */
+		/*                                        
+                          
+                                                               
+   */
 		.cpu_dai_name = "omap-mcbsp-dai.2",
 		.platform_name = "aess",
 
@@ -1162,10 +1201,11 @@ static int __init sdp4430_soc_init(void)
 	u8 gpoctl;
 	int ret;
 
-	if (!machine_is_p2() && !machine_is_lghdk() && !machine_is_iff() && !machine_is_u2() && !machine_is_cosmo() && !machine_is_cx2()) {
-		pr_debug("Not Supported Device\n");
-		return -ENODEV;
-	}
+//  Need Fix
+//	if (!machine_is_p2() && !machine_is_lghdk() && !machine_is_iff() && !machine_is_u2) {
+//		printk("Not Supported Sound Device\n");
+//		return -ENODEV;
+//	}
 	printk(KERN_INFO "LG SoC init\n");
 	if (machine_is_lghdk())
                 snd_soc_sdp4430.name = "lghdk";
@@ -1173,12 +1213,9 @@ static int __init sdp4430_soc_init(void)
                 snd_soc_sdp4430.name = "p2";
         else if(machine_is_iff())
                 snd_soc_sdp4430.name = "iff";
-        else if(machine_is_u2())
-                snd_soc_sdp4430.name = "u2";
-        else if(machine_is_cx2())
-                snd_soc_sdp4430.name = "cx2";
-	else if(machine_is_cosmo())
-                snd_soc_sdp4430.name = "cosmo";
+// Need Fix
+	else
+		snd_soc_sdp4430.name = "u2";
 
 	sdp4430_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!sdp4430_snd_device) {
@@ -1212,16 +1249,26 @@ static int __init sdp4430_soc_init(void)
 		goto err_dev;
 	}
 
+	/* Default mode is low-power, MCLK not required */
+	twl6040_power_mode = 0;
+	cdc_tcxo_set_req_int(CDC_TCXO_CLK2, 0);
+
+	/*
+	 * CDC CLK2 supplies TWL6040 MCLK, drive it from REQ2INT to
+	 * have full control of MCLK gating
+	 */
+	cdc_tcxo_set_req_prio(CDC_TCXO_CLK2, CDC_TCXO_PRIO_REQINT);
+
 	return ret;
-#else //LGE_D1_BSP_ICS seungdae.goh@lge.com 2012-04-24
+#else //                                              
 
 	/* Default mode is low-power, MCLK not required */
 	twl6040_power_mode = 0;	//  Set Default mode is High-Performace power
-#ifdef CONFIG_MACH_LGE_U2
+
+	//                                                                                        
+	//cdc_tcxo_set_req_int(CDC_TCXO_CLK3, 0);
 	cdc_tcxo_set_req_int(CDC_TCXO_CLK3, 1);
-#else
-	cdc_tcxo_set_req_int(CDC_TCXO_CLK3, 0);
-#endif
+	//                                                                                      
 
 	/*
 	 * CDC CLK2 supplies TWL6040 MCLK, drive it from REQ2INT to
@@ -1244,6 +1291,11 @@ static void __exit sdp4430_soc_exit(void)
 {
 #if 0 //Ti patch
 	regulator_put(av_switch_reg);
+	cdc_tcxo_set_req_int(CDC_TCXO_CLK2, 0);
+	cdc_tcxo_set_req_prio(CDC_TCXO_CLK2, CDC_TCXO_PRIO_REQINT);
+#else
+	cdc_tcxo_set_req_int(CDC_TCXO_CLK3, 0);
+	cdc_tcxo_set_req_prio(CDC_TCXO_CLK3, CDC_TCXO_PRIO_REQINT);
 #endif
 	platform_device_unregister(sdp4430_snd_device);
 	snd_soc_unregister_dais(&sdp4430_snd_device->dev, ARRAY_SIZE(dai));

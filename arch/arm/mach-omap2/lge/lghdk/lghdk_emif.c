@@ -54,7 +54,7 @@ static struct lge_emif_devices emif_devices __initdata = {
 		.cs1_device = NULL
 	}
 }; 
-#endif /* (CONFIG_MACH_LGE_HDK) */
+#endif /*                       */
 
 int __init lge_emif_init(void)
 {

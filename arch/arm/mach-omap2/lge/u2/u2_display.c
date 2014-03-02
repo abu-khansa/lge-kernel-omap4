@@ -349,7 +349,7 @@ int __init u2_dss_init(void)
 	else{
 		lcd2_info = hitachi_u2_device;
 	}
-#else //CONFIG_MACH_LGE_U2_P760
+#else //                       
 	if(system_rev == 0){
 		if(maker_id == 1)
 			lcd2_info = lgd_device;
@@ -411,6 +411,7 @@ static void u2_dsi_phy_init(void)
 #endif
 }
 
+#ifdef CONFIG_OMAP4_DSS_HDMI
 static void u2_hdmi_pad_init(void)
 {
 	u32 r;
@@ -433,6 +434,9 @@ static void u2_hdmi_pad_init(void)
 	gpio_direction_input(GPIO_HDMI_HPD);
 
 }
+#endif
 
 LGE_LATE_INIT(u2_dsi_phy_init);
+#ifdef CONFIG_OMAP4_DSS_HDMI
 LGE_LATE_INIT(u2_hdmi_pad_init);
+#endif

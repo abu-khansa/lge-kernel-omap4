@@ -1101,8 +1101,7 @@ static int shmem_writepage(struct page *page, struct writeback_control *wbc)
 		goto unlock;
 	}
 	entry = shmem_swp_entry(info, index, NULL);
-        //if (entry->val) {//mo2seongjae.jang 20120702 WBT issue modification
-	if(entry && entry->val) {
+	if (entry->val) {
 		/*
 		 * The more uptodate page coming down from a stacked
 		 * writepage should replace our old swappage.
@@ -1123,7 +1122,7 @@ static int shmem_writepage(struct page *page, struct writeback_control *wbc)
 		return 0;
 	}
 
-	if(entry) shmem_swp_unmap(entry);//mo2seongjae.jang 20120702 WBT issue modification
+	shmem_swp_unmap(entry);
 unlock:
 	spin_unlock(&info->lock);
 	/*

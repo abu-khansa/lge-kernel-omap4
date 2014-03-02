@@ -26,11 +26,11 @@
 #include <lge/board_rev.h>
 #include <linux/err.h>
 #include <linux/fuel_gauge_max17048.h>
-// LGE_CHANGE_S [dukwung.kim@lge.com] 2011-07-13, [P940_DCM] change charger IC
+//                                                                            
 #if defined(CONFIG_MAX8971_CHARGER)
 #include <linux/max8971.h>
 #endif
-// LGE_CHANGE_E [dukwung.kim@lge.com]
+//                                   
 #if defined(CONFIG_TOUCHSCREEN_P940_GENERAL)
 #include <linux/lge_touch_synaptics.h>
 #endif
@@ -104,6 +104,7 @@ int device_power_control(char *reg_id, int on)
 	       regulator_status > 0 ? "ON" : "OFF");
 	return 0;
 }
+EXPORT_SYMBOL(device_power_control);
 
 int vibrator_power_control(int on)
 {
@@ -173,7 +174,7 @@ static struct regulator_consumer_supply twl6030_vusb_supply[] = {
 };
 
 static struct regulator_consumer_supply twl6030_vaux1_supply[] = {
-	REGULATOR_SUPPLY("vaux1", NULL),
+	REGULATOR_SUPPLY("vaux1", "omap_hsmmc.1"),
 };
 
 /* over EVB_BOARD */
@@ -218,9 +219,30 @@ TWL6030_REGULATOR_DEVICE(vpp,   1800000, 1800000, 0, 0);	// OMAP_VPP_CUST
 TWL6030_REGULATOR_DEVICE(vusim, 3200000, 3200000, 0, 0);	// Vibrator
 /* The Vusb is defined directly instead of below def() for 172777*/
 /* TWL6030_REGULATOR_DEVICE(vusb, 	3300000, 3300000, 0,0);	// USB */
-TWL6030_REGULATOR_DEVICE(vaux1, 2800000, 2800000, 0, 1);	// eMMC
+//TWL6030_REGULATOR_DEVICE(vaux1, 3000000, 3000000, 0, 1);	// eMMC
 TWL6030_REGULATOR_DEVICE(vaux2, 1800000, 1800000, 0, 0);	// MHL 1.8V
 TWL6030_REGULATOR_DEVICE(vaux3, 1800000, 1800000, 0, 0);	// Cam
+
+static struct regulator_init_data twl6030_vaux1_data = {
+	.constraints = {
+		.min_uV = 3000000,
+		.max_uV = 3000000,
+		.apply_uV = true,
+		.always_on = true,
+		.boot_on = true,
+		.valid_modes_mask = (REGULATOR_CHANGE_VOLTAGE
+			| REGULATOR_MODE_NORMAL
+			| REGULATOR_MODE_STANDBY),
+		.valid_ops_mask = ( REGULATOR_CHANGE_MODE
+			| REGULATOR_CHANGE_STATUS),
+		.state_mem = {
+			.enabled = true,
+			.disabled = false,
+		},
+	},
+	.num_consumer_supplies = ARRAY_SIZE(twl6030_vaux1_supply),
+	.consumer_supplies = twl6030_vaux1_supply,
+};
 
 static struct regulator_init_data twl6030_vana_data = {
 	.constraints = {
@@ -489,7 +511,7 @@ static struct cdc_tcxo_platform_data sdp4430_cdc_data = {
  * change touch_driver files
  */
 #if defined(CONFIG_MAX8971_CHARGER)
-// LGE_CHANGES_S [dukwung.kim@lge.com] 2011-07-13,
+//                                                
 static struct max8971_platform_data max8971_data = {
 
 //        .chgcc = 0x0C,                  // Fast Charge Current - 600mA
@@ -537,10 +559,10 @@ static struct touch_device_caps touch_caps = {
 #if defined(CONFIG_INPUT_LGE_ANDROID_3KEYS)	// S, K, L
 	.number_of_button = 3,
 	.button_name = {KEY_MENU, KEY_HOME, KEY_BACK},
-#else // CONFIG_INPUT_LGE_ANDROID_3KEYS
+#else //                               
 	.number_of_button = 4,
 	.button_name = {KEY_MENU, KEY_HOME, KEY_BACK, KEY_SEARCH},
-#endif // CONFIG_INPUT_LGE_ANDROID_3KEYS
+#endif //                               
 	.button_margin = 10,
 	.is_width_supported = 1,
 	.is_pressure_supported = 1,
@@ -680,7 +702,6 @@ struct sii9244_platform_data sii9244_pdata = {
 /* add muic platform data */
 static struct muic_platform_data muic_pdata = {
 	.gpio_int = GPIO_MUIC_INT,
-	.gpio_mhl = GPIO_MHL_SEL,
 	.gpio_ifx_vbus = GPIO_IFX_USB_VBUS_EN,
 };
 
@@ -808,16 +829,16 @@ static struct i2c_board_info i2c_4_info[] __initdata = {
 	 * Add Charger IC(Max8971) in Rev.A only
 	 */
 /*
-// LGE_CHANGE_S [euiseop.shin@lge.com] 2011-06-09, [P940] Add Charger IC(Max8971) in Rev.A
-#if defined(CONFIG_LG_FW_MAX8971_CHARGER)
-	{
-		I2C_BOARD_INFO(MAX8971_I2C_NAME, MAX8971_I2C_ADDR >> 1),
-		.platform_data = &max8971_pdata,
-	},
-#endif
+                                                                                          
+                                         
+  
+                                                          
+                                  
+   
+      
 */
-	/* LGE_CHANGE_E [euiseop.shin@lge.com] 2011-06-09, [P940] */
-// LGE_CHANGES_S [dukwung.kim@lge.com] 2011-07-13
+	/*                                                        */
+//                                               
 
 #if defined(CONFIG_MAX8971_CHARGER)
         {
@@ -827,7 +848,7 @@ static struct i2c_board_info i2c_4_info[] __initdata = {
                 .platform_data = &max8971_data,
         },
 #endif
-// LGE_CHANGES_E [dukwung.kim@lge.com] 2011-07-13
+//                                               
 };
 
 /* i2c_1_config */
